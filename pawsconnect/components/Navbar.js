@@ -1,35 +1,46 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Navbar() {
   return (
-    <header className="w-full border-b bg-white">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between p-4">
-        {/* Logo */}
-        <Link href="/" className="text-lg font-bold">
-          PawsConnect Davao
+    <header className="sticky top-0 z-50 border-b border-black/5 bg-base/70 backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <Link href="/" className="flex items-center gap-3">
+          <Image
+            src="/images/logo.png"
+            alt="PawsConnect Logo"
+            width={40}
+            height={40}
+            className="rounded-full"
+          />
+          <span className="text-lg font-extrabold text-primary">
+            PawsConnect Davao
+          </span>
         </Link>
 
-        {/* Public links (no login needed for reporters) */}
-        <div className="flex items-center gap-4 text-sm">
-          <Link href="/how-it-works" className="hover:underline">
-            How It Works
-          </Link>
-          <Link href="/report" className="hover:underline">
-            Report Stray
-          </Link>
-          <Link href="/status" className="hover:underline">
-            Track Ticket
+        <nav className="flex items-center gap-3">
+          <Link
+            href="/report"
+            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            Report
           </Link>
 
-          {/* Volunteer */}
+          <Link
+            href="/status"
+            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-primary ring-2 ring-primary/20 transition hover:ring-primary/40"
+          >
+            Track
+          </Link>
+
           <Link
             href="/volunteer/login"
-            className="rounded-lg border px-3 py-1 hover:bg-gray-50"
+            className="hidden text-sm font-semibold text-secondary underline decoration-secondary/50 underline-offset-4 hover:decoration-secondary md:inline"
           >
             Volunteer Login
           </Link>
-        </div>
-      </nav>
+        </nav>
+      </div>
     </header>
   );
 }

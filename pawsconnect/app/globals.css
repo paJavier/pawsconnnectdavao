@@ -14,3 +14,21 @@
 .delay-100 {
   animation-delay: 100ms;
 }
+
+@keyframes floaty {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0.25; }
+  50% { transform: translateY(-18px) rotate(6deg); opacity: 0.45; }
+  100% { transform: translateY(0) rotate(0deg); opacity: 0.25; }
+}
+
+.paw-float {
+  animation: floaty 6s ease-in-out infinite;
+}
+
+.paw-float-slow {
+  animation: floaty 9s ease-in-out infinite;
+}
+
+.paw-float-fast {
+  animation: floaty 4.5s ease-in-out infinite;
+}
