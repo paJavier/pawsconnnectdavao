@@ -1,14 +1,18 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const partnerGroups = [
-  { name: "Happy Animals Club" },
-  { name: "Davao Rescue Org" },
-  { name: "Paw Patrol Volunteers" },
-  { name: "City Shelter Partner" },
+  { name: "Happy Animals Club", logo: "/images/partners/partner2.png" },
+  { name: "Bantay Hayop Davao", logo: "/images/partners/partner1.jpg" },
+  { name: "Davao Animal Rescue Volunteers", logo: "/images/partners/partner3.jpg" },
+  { name: "ARRF-Davao Inc", logo: "/images/partners/partner4.jpg" },
 ];
+
+
 
 // Parallax hook
 function useParallax(strength = 0.22) {
@@ -83,6 +87,29 @@ function FloatingPaws() {
 
 export default function Home() {
   const parallaxY = useParallax(0.22);
+  const router = useRouter();
+  const [isPartnerSignupOpen, setIsPartnerSignupOpen] = useState(false);
+  const [partnerForm, setPartnerForm] = useState({
+    fullName: "",
+    organization: "",
+    email: "",
+    phone: "",
+    password: "",
+  });
+
+  const openPartnerSignup = () => setIsPartnerSignupOpen(true);
+  const closePartnerSignup = () => setIsPartnerSignupOpen(false);
+
+  const handlePartnerFormChange = (event) => {
+    const { name, value } = event.target;
+    setPartnerForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePartnerSignup = (event) => {
+    event.preventDefault();
+    closePartnerSignup();
+    router.push("/volunteer-orgs/dashboard");
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-base/90 to-white">
@@ -104,8 +131,6 @@ export default function Home() {
           aria-hidden="true"
         />
 
-        {/* Floating paws */}
-        <FloatingPaws />
 
         {/* Hero content */}
         <div className="relative z-20 mx-auto max-w-6xl px-6 py-12 md:py-16">
@@ -162,19 +187,27 @@ export default function Home() {
                   These groups will receive alerts and accept cases through the volunteer dashboard.
                 </p>
 
-                <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {/* Grid */}
+                <div className="mt-6 grid grid-cols-2 gap-6 sm:grid-cols-4">
                   {partnerGroups.map((p) => (
                     <div
                       key={p.name}
-                      className="flex items-center gap-3 rounded-2xl bg-white/90 p-3 shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md"
+                      className="group flex flex-col items-center text-center"
                     >
-                      <div className="h-10 w-10 rounded-xl bg-base ring-1 ring-black/5" />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-neutral-900">
-                          {p.name}
-                        </p>
-                        <p className="text-xs text-neutral-600">Verified partner</p>
+                      {/* Logo Square */}
+                      <div className="relative aspect-square w-full max-w-[120px] overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition group-hover:-translate-y-1 group-hover:shadow-md">
+                        <Image
+                          src={p.logo}
+                          alt={p.name}
+                          fill
+                          className="object-cover transition group-hover:scale-105"
+                        />
                       </div>
+
+                      {/* Name Below */}
+                      <p className="mt-3 text-sm font-semibold text-neutral-900">
+                        {p.name}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -198,8 +231,8 @@ export default function Home() {
             </div>
 
             {/* RIGHT */}
-            <aside className="animate-fadeUp delay-100">
-              <div className="rounded-3xl bg-white/95 p-7 shadow-lg ring-1 ring-black/5 backdrop-blur-sm">
+            <aside className="animate-fadeUp delay-100 space-y-4">
+                <div className="rounded-3xl bg-white/95 p-7 shadow-lg ring-1 ring-black/5 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-extrabold text-primary">
                     Volunteers & Groups
@@ -243,7 +276,7 @@ export default function Home() {
 
                   <div className="grid gap-3">
                     <Link
-                      href="/volunteer/login"
+                      href="/volunteer-orgs/login"
                       className="rounded-xl bg-secondary px-5 py-3 text-center font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
                     >
                       Log In
@@ -251,12 +284,13 @@ export default function Home() {
 
                     <div className="text-center text-xs text-neutral-700">
                       Need an account?{" "}
-                      <Link
-                        href="/volunteer/signup"
+                      <button
+                        type="button"
+                        onClick={openPartnerSignup}
                         className="font-semibold text-primary underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
                       >
                         Sign up
-                      </Link>
+                      </button>
                     </div>
 
                     <div className="rounded-2xl bg-base/40 p-4 text-xs text-neutral-800">
@@ -268,11 +302,34 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+              {/* Become a Partner CTA */}
+              <div className="rounded-3xl bg-gradient-to-br from-base/80 to-white p-6 shadow-sm ring-1 ring-black/5 backdrop-blur-sm">
+                <h3 className="text-sm font-bold text-primary">
+                  Want to help more strays?
+                </h3>
+
+                <p className="mt-2 text-sm text-neutral-700">
+                  If you are part of a rescue group or animal welfare organization,
+                  apply to become a verified partner and start receiving local stray reports.
+                </p>
+
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={openPartnerSignup}
+                    className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+                  >
+                    Become a Partner →
+                  </button>
+                </div>
+              </div>
             </aside>
           </div>
         </div>
       </section>
 
+      {/* Floating paws */}
+        <FloatingPaws />
       {/* IMPACT (Reveal on scroll) */}
       <Reveal className="mx-auto mt-20 max-w-6xl px-6 pb-16">
         <div className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-black/5">
@@ -312,6 +369,111 @@ export default function Home() {
           </div>
         </div>
       </Reveal>
+
+      {isPartnerSignupOpen ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 px-4">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-black/10">
+            <button
+              type="button"
+              onClick={closePartnerSignup}
+              className="absolute right-4 top-3 text-2xl leading-none text-neutral-500 transition hover:text-neutral-700"
+              aria-label="Close sign up form"
+            >
+              x
+            </button>
+
+            <h3 className="text-2xl font-extrabold text-primary">Become a Partner</h3>
+            <p className="mt-1 text-sm text-neutral-700">
+              Sign up your volunteer group to receive and manage stray reports.
+            </p>
+
+            <form onSubmit={handlePartnerSignup} className="mt-5 space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-neutral-700">Full name</label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={partnerForm.fullName}
+                  onChange={handlePartnerFormChange}
+                  required
+                  placeholder="Juan Dela Cruz"
+                  className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-neutral-700">Organization</label>
+                <input
+                  type="text"
+                  name="organization"
+                  value={partnerForm.organization}
+                  onChange={handlePartnerFormChange}
+                  required
+                  placeholder="Rescue Group Name"
+                  className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs font-semibold text-neutral-700">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={partnerForm.email}
+                    onChange={handlePartnerFormChange}
+                    required
+                    placeholder="name@org.com"
+                    className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-neutral-700">Phone</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={partnerForm.phone}
+                    onChange={handlePartnerFormChange}
+                    required
+                    placeholder="09XXXXXXXXX"
+                    className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-neutral-700">Password</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={partnerForm.password}
+                  onChange={handlePartnerFormChange}
+                  required
+                  placeholder="Create a password"
+                  className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
+                />
+              </div>
+
+              <div className="mt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closePartnerSignup}
+                  className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-neutral-700 ring-1 ring-black/10 transition hover:bg-neutral-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  Create Partner Account
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

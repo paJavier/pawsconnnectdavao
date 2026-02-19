@@ -34,7 +34,7 @@ export default function Navbar() {
           </Link>
 
           <Link
-            href="/volunteer/login"
+            href="/volunteer-orgs/login"
             className="hidden text-sm font-semibold text-secondary underline decoration-secondary/50 underline-offset-4 hover:decoration-secondary md:inline"
           >
             Volunteer Login
