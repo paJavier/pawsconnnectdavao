@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import VolunteerSignUp from "@/components/VolunteerSignUp";
+
 
 const partnerGroups = [
   { name: "Happy Animals Club", logo: "/images/partners/partner2.png" },
@@ -85,31 +86,14 @@ function FloatingPaws() {
   );
 }
 
+
 export default function Home() {
   const parallaxY = useParallax(0.22);
-  const router = useRouter();
+
   const [isPartnerSignupOpen, setIsPartnerSignupOpen] = useState(false);
-  const [partnerForm, setPartnerForm] = useState({
-    fullName: "",
-    organization: "",
-    email: "",
-    phone: "",
-    password: "",
-  });
 
   const openPartnerSignup = () => setIsPartnerSignupOpen(true);
   const closePartnerSignup = () => setIsPartnerSignupOpen(false);
-
-  const handlePartnerFormChange = (event) => {
-    const { name, value } = event.target;
-    setPartnerForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handlePartnerSignup = (event) => {
-    event.preventDefault();
-    closePartnerSignup();
-    router.push("/volunteer-orgs/dashboard");
-  };
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-base/90 to-white">
@@ -284,13 +268,13 @@ export default function Home() {
 
                     <div className="text-center text-xs text-neutral-700">
                       Need an account?{" "}
-                      <button
-                        type="button"
-                        onClick={openPartnerSignup}
-                        className="font-semibold text-primary underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
-                      >
-                        Sign up
-                      </button>
+                    <button
+                      type="button"
+                      onClick={openPartnerSignup}
+                      className="font-semibold text-primary underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
+                    >
+                      Sign up
+                    </button>
                     </div>
 
                     <div className="rounded-2xl bg-base/40 p-4 text-xs text-neutral-800">
@@ -369,111 +353,7 @@ export default function Home() {
           </div>
         </div>
       </Reveal>
-
-      {isPartnerSignupOpen ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 px-4">
-          <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-black/10">
-            <button
-              type="button"
-              onClick={closePartnerSignup}
-              className="absolute right-4 top-3 text-2xl leading-none text-neutral-500 transition hover:text-neutral-700"
-              aria-label="Close sign up form"
-            >
-              x
-            </button>
-
-            <h3 className="text-2xl font-extrabold text-primary">Become a Partner</h3>
-            <p className="mt-1 text-sm text-neutral-700">
-              Sign up your volunteer group to receive and manage stray reports.
-            </p>
-
-            <form onSubmit={handlePartnerSignup} className="mt-5 space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-neutral-700">Full name</label>
-                <input
-                  type="text"
-                  name="fullName"
-                  value={partnerForm.fullName}
-                  onChange={handlePartnerFormChange}
-                  required
-                  placeholder="Juan Dela Cruz"
-                  className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-neutral-700">Organization</label>
-                <input
-                  type="text"
-                  name="organization"
-                  value={partnerForm.organization}
-                  onChange={handlePartnerFormChange}
-                  required
-                  placeholder="Rescue Group Name"
-                  className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
-                />
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs font-semibold text-neutral-700">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={partnerForm.email}
-                    onChange={handlePartnerFormChange}
-                    required
-                    placeholder="name@org.com"
-                    className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-neutral-700">Phone</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={partnerForm.phone}
-                    onChange={handlePartnerFormChange}
-                    required
-                    placeholder="09XXXXXXXXX"
-                    className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-neutral-700">Password</label>
-                <input
-                  type="password"
-                  name="password"
-                  value={partnerForm.password}
-                  onChange={handlePartnerFormChange}
-                  required
-                  placeholder="Create a password"
-                  className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
-                />
-              </div>
-
-              <div className="mt-2 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={closePartnerSignup}
-                  className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-neutral-700 ring-1 ring-black/10 transition hover:bg-neutral-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  Create Partner Account
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+    <VolunteerSignUp isOpen={isPartnerSignupOpen} onClose={closePartnerSignup} />             
     </main>
   );
 }

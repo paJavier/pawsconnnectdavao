@@ -34,10 +34,10 @@ export default function Navbar() {
           </Link>
 
           <Link
-            href="/volunteer-orgs/login"
-            className="hidden text-sm font-semibold text-secondary underline decoration-secondary/50 underline-offset-4 hover:decoration-secondary md:inline"
+            href="/volunteer-orgs/dashboard"
+            className="rounded-xl bg-secondary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
-            Volunteer Login
+            Dashboard
           </Link>
         </nav>
       </div>
