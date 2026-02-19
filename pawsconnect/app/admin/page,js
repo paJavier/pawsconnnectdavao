@@ -1,0 +1,171 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { onAuthStateChanged } from "firebase/auth";
+import { collection, getDocs, doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+
+export default function AdminPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [apps, setApps] = useState([]);
+  const [filter, setFilter] = useState("pending"); // pending | approved | rejected | all
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.push("/");
+        return;
+      }
+
+      // role-based access check
+      const userSnap = await getDoc(doc(db, "users", user.uid));
+      if (!userSnap.exists() || userSnap.data()?.role !== "admin") {
+        router.push("/");
+        return;
+      }
+
+      await loadApps();
+      setLoading(false);
+    });
+
+    return () => unsub();
+  }, [router]);
+
+  const loadApps = async () => {
+    const snap = await getDocs(collection(db, "partnerApplications"));
+    const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+    const filtered =
+      filter === "all" ? data : data.filter((a) => (a.status || "pending") === filter);
+
+    // Show newest first
+    filtered.sort((a, b) => {
+      const at = a.createdAt?.seconds || 0;
+      const bt = b.createdAt?.seconds || 0;
+      return bt - at;
+    });
+
+    setApps(filtered);
+  };
+
+  useEffect(() => {
+    // reload list on filter change (if already loaded)
+    if (!loading) loadApps();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
+
+  const setStatus = async (id, nextStatus) => {
+    await updateDoc(doc(db, "partnerApplications", id), {
+      status: nextStatus,
+      approvedAt: nextStatus === "approved" ? serverTimestamp() : null,
+      approvedBy: nextStatus === "approved" ? auth.currentUser?.uid : null,
+    });
+
+    // (optional) create a user role doc for approved partners
+    if (nextStatus === "approved") {
+      // This is optional; nice for future permission checks
+      // await setDoc(doc(db, "users", id), { role: "partner" }, { merge: true });
+    }
+
+    await loadApps();
+  };
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-5xl px-6 py-12">
+        <div className="rounded-3xl bg-white p-8 shadow ring-1 ring-black/5">Loading admin panel…</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl px-6 py-12">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-primary">Admin Approval Panel</h1>
+          <p className="mt-1 text-neutral-700">Review partner applications and approve access.</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-semibold text-neutral-800">Filter:</label>
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+          >
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="all">All</option>
+          </select>
+
+          <button
+            onClick={loadApps}
+            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-secondary ring-2 ring-secondary/20 transition hover:ring-secondary/40"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-8 space-y-4">
+        {apps.map((a) => (
+          <div key={a.id} className="rounded-3xl bg-white p-6 shadow ring-1 ring-black/5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-lg font-extrabold text-primary">{a.organization}</p>
+                <p className="text-sm text-neutral-700">Contact: {a.fullName}</p>
+                <p className="text-sm text-neutral-700">Email: {a.email}</p>
+                <p className="text-sm text-neutral-700">Phone: {a.phone}</p>
+                <p className="mt-2 text-sm">
+                  Status:{" "}
+                  <span className="rounded-full bg-base/60 px-3 py-1 text-xs font-semibold text-neutral-800">
+                    {a.status || "pending"}
+                  </span>
+                </p>
+
+                {a.permitUrl ? (
+                  <p className="mt-2 text-sm">
+                    Proof:{" "}
+                    <a className="font-semibold text-secondary underline" href={a.permitUrl} target="_blank">
+                      Open file
+                    </a>
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2 sm:mt-0">
+                <button
+                  onClick={() => setStatus(a.id, "approved")}
+                  className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => setStatus(a.id, "rejected")}
+                  className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  Reject
+                </button>
+                <button
+                  onClick={() => setStatus(a.id, "pending")}
+                  className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-neutral-800 ring-1 ring-black/10 transition hover:bg-neutral-50"
+                >
+                  Set to Pending
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {apps.length === 0 ? (
+          <div className="rounded-3xl bg-white p-8 text-neutral-700 shadow ring-1 ring-black/5">
+            No applications found for this filter.
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
