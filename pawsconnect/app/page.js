@@ -1,14 +1,19 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import VolunteerSignUp from "@/components/VolunteerSignUp";
+
 
 const partnerGroups = [
-  { name: "Happy Animals Club" },
-  { name: "Davao Rescue Org" },
-  { name: "Paw Patrol Volunteers" },
-  { name: "City Shelter Partner" },
+  { name: "Happy Animals Club", logo: "/images/partners/partner2.png" },
+  { name: "Bantay Hayop Davao", logo: "/images/partners/partner1.jpg" },
+  { name: "Davao Animal Rescue Volunteers", logo: "/images/partners/partner3.jpg" },
+  { name: "ARRF-Davao Inc", logo: "/images/partners/partner4.jpg" },
 ];
+
+
 
 // Parallax hook
 function useParallax(strength = 0.22) {
@@ -81,8 +86,14 @@ function FloatingPaws() {
   );
 }
 
+
 export default function Home() {
   const parallaxY = useParallax(0.22);
+
+  const [isPartnerSignupOpen, setIsPartnerSignupOpen] = useState(false);
+
+  const openPartnerSignup = () => setIsPartnerSignupOpen(true);
+  const closePartnerSignup = () => setIsPartnerSignupOpen(false);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-base/90 to-white">
@@ -104,8 +115,6 @@ export default function Home() {
           aria-hidden="true"
         />
 
-        {/* Floating paws */}
-        <FloatingPaws />
 
         {/* Hero content */}
         <div className="relative z-20 mx-auto max-w-6xl px-6 py-12 md:py-16">
@@ -162,19 +171,27 @@ export default function Home() {
                   These groups will receive alerts and accept cases through the volunteer dashboard.
                 </p>
 
-                <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {/* Grid */}
+                <div className="mt-6 grid grid-cols-2 gap-6 sm:grid-cols-4">
                   {partnerGroups.map((p) => (
                     <div
                       key={p.name}
-                      className="flex items-center gap-3 rounded-2xl bg-white/90 p-3 shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md"
+                      className="group flex flex-col items-center text-center"
                     >
-                      <div className="h-10 w-10 rounded-xl bg-base ring-1 ring-black/5" />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-neutral-900">
-                          {p.name}
-                        </p>
-                        <p className="text-xs text-neutral-600">Verified partner</p>
+                      {/* Logo Square */}
+                      <div className="relative aspect-square w-full max-w-[120px] overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition group-hover:-translate-y-1 group-hover:shadow-md">
+                        <Image
+                          src={p.logo}
+                          alt={p.name}
+                          fill
+                          className="object-cover transition group-hover:scale-105"
+                        />
                       </div>
+
+                      {/* Name Below */}
+                      <p className="mt-3 text-sm font-semibold text-neutral-900">
+                        {p.name}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -198,8 +215,8 @@ export default function Home() {
             </div>
 
             {/* RIGHT */}
-            <aside className="animate-fadeUp delay-100">
-              <div className="rounded-3xl bg-white/95 p-7 shadow-lg ring-1 ring-black/5 backdrop-blur-sm">
+            <aside className="animate-fadeUp delay-100 space-y-4">
+                <div className="rounded-3xl bg-white/95 p-7 shadow-lg ring-1 ring-black/5 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-extrabold text-primary">
                     Volunteers & Groups
@@ -243,7 +260,7 @@ export default function Home() {
 
                   <div className="grid gap-3">
                     <Link
-                      href="/volunteer/login"
+                      href="/volunteer-orgs/login"
                       className="rounded-xl bg-secondary px-5 py-3 text-center font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
                     >
                       Log In
@@ -251,12 +268,13 @@ export default function Home() {
 
                     <div className="text-center text-xs text-neutral-700">
                       Need an account?{" "}
-                      <Link
-                        href="/volunteer/signup"
-                        className="font-semibold text-primary underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
-                      >
-                        Sign up
-                      </Link>
+                    <button
+                      type="button"
+                      onClick={openPartnerSignup}
+                      className="font-semibold text-primary underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
+                    >
+                      Sign up
+                    </button>
                     </div>
 
                     <div className="rounded-2xl bg-base/40 p-4 text-xs text-neutral-800">
@@ -268,11 +286,34 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+              {/* Become a Partner CTA */}
+              <div className="rounded-3xl bg-gradient-to-br from-base/80 to-white p-6 shadow-sm ring-1 ring-black/5 backdrop-blur-sm">
+                <h3 className="text-sm font-bold text-primary">
+                  Want to help more strays?
+                </h3>
+
+                <p className="mt-2 text-sm text-neutral-700">
+                  If you are part of a rescue group or animal welfare organization,
+                  apply to become a verified partner and start receiving local stray reports.
+                </p>
+
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={openPartnerSignup}
+                    className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+                  >
+                    Become a Partner →
+                  </button>
+                </div>
+              </div>
             </aside>
           </div>
         </div>
       </section>
 
+      {/* Floating paws */}
+        <FloatingPaws />
       {/* IMPACT (Reveal on scroll) */}
       <Reveal className="mx-auto mt-20 max-w-6xl px-6 pb-16">
         <div className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-black/5">
@@ -312,6 +353,7 @@ export default function Home() {
           </div>
         </div>
       </Reveal>
+    <VolunteerSignUp isOpen={isPartnerSignupOpen} onClose={closePartnerSignup} />             
     </main>
   );
 }
