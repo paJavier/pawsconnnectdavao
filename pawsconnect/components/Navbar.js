@@ -3,9 +3,25 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { auth } from "@/lib/firebase";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  const handleDashboardClick = (e) => {
+    e.preventDefault();
+
+    if (auth.currentUser) {
+      router.push("/volunteer-orgs/dashboard");
+      setOpen(false);
+      return;
+    }
+
+    router.push("/volunteer-orgs/login");
+    setOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-black/5 bg-base/70 backdrop-blur-md">
@@ -49,6 +65,7 @@ export default function Navbar() {
 
           <Link
             href="/volunteer-orgs/dashboard"
+            onClick={handleDashboardClick}
             className="rounded-xl bg-secondary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
             Dashboard
@@ -122,6 +139,14 @@ export default function Navbar() {
               className="text-sm font-semibold text-secondary underline decoration-secondary/50 underline-offset-4"
             >
               Volunteer Login
+            </Link>
+
+            <Link
+              href="/volunteer-orgs/dashboard"
+              onClick={handleDashboardClick}
+              className="rounded-xl bg-secondary px-4 py-2 text-sm font-semibold text-white shadow-sm"
+            >
+              Dashboard
             </Link>
           </nav>
         </div>

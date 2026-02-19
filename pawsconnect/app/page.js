@@ -3,7 +3,12 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import VolunteerSignUp from "@/components/VolunteerSignUp";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import { getAuthErrorMessage } from "@/lib/authErrorMessage";
 
 
 const partnerGroups = [
@@ -88,12 +93,35 @@ function FloatingPaws() {
 
 
 export default function Home() {
+  const router = useRouter();
   const parallaxY = useParallax(0.22);
 
   const [isPartnerSignupOpen, setIsPartnerSignupOpen] = useState(false);
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [loginMessage, setLoginMessage] = useState("");
 
   const openPartnerSignup = () => setIsPartnerSignupOpen(true);
   const closePartnerSignup = () => setIsPartnerSignupOpen(false);
+  const handleLoginChange = (e) => {
+    const { name, value } = e.target;
+    setLoginForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      setLoginMessage("");
+      setLoggingIn(true);
+      const cred = await signInWithEmailAndPassword(auth, loginForm.email.trim(), loginForm.password);
+      const userSnap = await getDoc(doc(db, "users", cred.user.uid));
+      const role = userSnap.exists() ? userSnap.data()?.role : null;
+      router.push(role === "admin" ? "/admin" : "/volunteer-orgs/dashboard");
+    } catch (error) {
+      setLoginMessage(getAuthErrorMessage(error, "Login failed. Please try again."));
+      setLoggingIn(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-base/90 to-white">
@@ -229,14 +257,23 @@ export default function Home() {
                 <p className="mt-2 text-sm text-neutral-700">
                   Volunteer accounts will receive alerts and manage cases in the dashboard.
                 </p>
+                {loginMessage ? (
+                  <div className="mt-4 rounded-xl bg-red-100 p-3 text-sm text-red-700 ring-1 ring-red-200">
+                    {loginMessage}
+                  </div>
+                ) : null}
 
-                <div className="mt-6 space-y-3">
+                <form onSubmit={handleLogin} className="mt-6 space-y-3">
                   <div>
                     <label className="text-xs font-semibold text-neutral-700">Email</label>
                     <input
                       type="email"
+                      name="email"
+                      value={loginForm.email}
+                      onChange={handleLoginChange}
                       placeholder="Enter your email"
                       className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
+                      required
                     />
                   </div>
 
@@ -244,8 +281,12 @@ export default function Home() {
                     <label className="text-xs font-semibold text-neutral-700">Password</label>
                     <input
                       type="password"
+                      name="password"
+                      value={loginForm.password}
+                      onChange={handleLoginChange}
                       placeholder="Enter your password"
                       className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
+                      required
                     />
                   </div>
 
@@ -259,12 +300,13 @@ export default function Home() {
                   </div>
 
                   <div className="grid gap-3">
-                    <Link
-                      href="/volunteer-orgs/login"
+                    <button
+                      type="submit"
+                      disabled={loggingIn}
                       className="rounded-xl bg-secondary px-5 py-3 text-center font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
                     >
-                      Log In
-                    </Link>
+                      {loggingIn ? "Logging in..." : "Log In"}
+                    </button>
 
                     <div className="text-center text-xs text-neutral-700">
                       Need an account?{" "}
@@ -284,7 +326,7 @@ export default function Home() {
                       </p>
                     </div>
                   </div>
-                </div>
+                </form>
               </div>
               {/* Become a Partner CTA */}
               <div className="rounded-3xl bg-gradient-to-br from-base/80 to-white p-6 shadow-sm ring-1 ring-black/5 backdrop-blur-sm">

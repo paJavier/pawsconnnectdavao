@@ -12,8 +12,12 @@ export default function VolunteerDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState(null); // pending | approved | rejected | no_application
   const [appData, setAppData] = useState(null);
-  const [emailVerified, setEmailVerified] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [sendingVerify, setSendingVerify] = useState(false);
+  const sampleReports = [
+    { id: "PC-00128", location: "2.2 km | High", submittedAgo: "10 mins" },
+    { id: "PC-00126", location: "1.8 km | High", submittedAgo: "12 mins" },
+  ];
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -22,7 +26,15 @@ export default function VolunteerDashboardPage() {
         return;
       }
 
-      // Email verification gating (you wanted this)
+      //  Check if admin 
+      const userSnap = await getDoc(doc(db, "users", user.uid));
+      if (userSnap.exists() && userSnap.data()?.role === "admin") {
+        setLoading(false);
+        router.push("/admin");
+        return;
+      }
+
+      //  Email verification gating (partners only)
       if (!user.emailVerified) {
         setEmailVerified(false);
         setLoading(false);
@@ -30,7 +42,7 @@ export default function VolunteerDashboardPage() {
       }
       setEmailVerified(true);
 
-      // Check application status
+      //  Check application status (partners)
       const snap = await getDoc(doc(db, "partnerApplications", user.uid));
       if (!snap.exists()) {
         setStatus("no_application");
@@ -40,12 +52,13 @@ export default function VolunteerDashboardPage() {
 
       const data = snap.data();
       setAppData(data);
-      setStatus(data.status || "pending");
+      setStatus((data.status || "pending").toString().trim().toLowerCase());
       setLoading(false);
     });
 
     return () => unsub();
   }, [router]);
+
 
   const handleResendVerification = async () => {
     try {
@@ -145,11 +158,16 @@ export default function VolunteerDashboardPage() {
             <p className="mt-1">Organization: {appData?.organization}</p>
             <p>Email: {appData?.email}</p>
             <p>Phone: {appData?.phone}</p>
-            {appData?.permitUrl ? (
+            {appData?.permitLink ? (
               <p className="mt-2">
-                Proof:{" "}
-                <a className="text-secondary underline" href={appData.permitUrl} target="_blank">
-                  View uploaded file
+                Proof link:{" "}
+                <a
+                  className="text-secondary underline"
+                  href={appData.permitLink}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open proof
                 </a>
               </p>
             ) : null}
@@ -186,24 +204,74 @@ export default function VolunteerDashboardPage() {
       </div>
     );
   }
-
-  // 5) Approved → real dashboard
+  
+  //dashboard
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
-      <div className="rounded-3xl bg-white p-8 shadow ring-1 ring-black/5">
-        <h1 className="text-3xl font-extrabold text-primary">Volunteer Dashboard</h1>
-        <p className="mt-2 text-neutral-700">
-          Welcome, <span className="font-semibold">{appData?.organization}</span>. You can now accept and manage cases.
+      <div className="rounded-3xl border border-amber-300 bg-white p-6 shadow ring-1 ring-black/5 md:p-8">
+        <h1 className="text-center text-2xl font-black uppercase tracking-[0.25em] text-amber-700 md:text-3xl">
+          Volunteer Dashboard
+        </h1>
+        <p className="mt-2 text-center text-sm text-neutral-700">
+          Welcome, <span className="font-semibold">{appData?.organization}</span>
         </p>
 
-        {/* TODO: put your real dashboard features here */}
-        <div className="mt-8 rounded-2xl bg-base/40 p-6">
-          <p className="font-semibold text-neutral-900">Next features to add:</p>
-          <ul className="mt-2 list-disc pl-5 text-neutral-800">
-            <li>Incoming reports queue</li>
-            <li>Accept case</li>
-            <li>Update status (en route, rescued, completed)</li>
-          </ul>
+        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="rounded-full bg-orange-300 px-4 py-2 text-center text-sm font-bold text-neutral-900">Active</div>
+          <div className="rounded-full bg-orange-300 px-4 py-2 text-center text-sm font-bold text-neutral-900">Pending</div>
+          <div className="rounded-full bg-orange-300 px-4 py-2 text-center text-sm font-bold text-neutral-900">Resolved</div>
+          <div className="rounded-full bg-orange-300 px-4 py-2 text-center text-sm font-bold text-neutral-900">Avg. Time</div>
+        </div>
+
+        <div className="mt-6 rounded-2xl bg-amber-100 p-4 md:p-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl bg-orange-300 p-4">
+              <h2 className="text-center text-lg font-bold text-neutral-900">Report List</h2>
+              <div className="mt-4 space-y-3">
+                {sampleReports.map((report) => (
+                  <div key={report.id} className="rounded-xl bg-white/90 p-4 text-sm text-neutral-900">
+                    <p>Ticket #{report.id}</p>
+                    <p>{report.location}</p>
+                    <p>Submitted {report.submittedAgo} ago</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-yellow-300 p-4">
+              <h2 className="text-center text-lg font-bold text-neutral-900">Report Details</h2>
+              <div className="mt-4 rounded-xl bg-white/80 p-5 text-center text-sm text-neutral-900">
+                <p>Ticket ID</p>
+                <p>Map Preview</p>
+                <p>Description</p>
+                <p>Photo</p>
+                <p>Status</p>
+              </div>
+              <div className="mt-4 flex gap-3">
+                <button className="flex-1 rounded-full bg-orange-400 px-4 py-2 text-sm font-bold text-neutral-900 transition hover:bg-orange-500">
+                  Accept
+                </button>
+                <button className="flex-1 rounded-full bg-orange-400 px-4 py-2 text-sm font-bold text-neutral-900 transition hover:bg-orange-500">
+                  Reassign
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link
+            href="/volunteer-orgs/dashboard/reports"
+            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-secondary ring-2 ring-secondary/20 transition hover:ring-secondary/40"
+          >
+            Open full reports
+          </Link>
+          <button
+            onClick={() => window.location.reload()}
+            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-secondary ring-2 ring-secondary/20 transition hover:ring-secondary/40"
+          >
+            Refresh
+          </button>
         </div>
       </div>
     </div>

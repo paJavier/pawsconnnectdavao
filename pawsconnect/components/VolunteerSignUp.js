@@ -2,27 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth, db, storage } from "@/lib/firebase"; // adjust path if needed
-import {
-  createUserWithEmailAndPassword,
-  sendEmailVerification,
-} from "firebase/auth";
-import {
-  doc,
-  setDoc,
-  serverTimestamp,
-} from "firebase/firestore";
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
+import { auth, db } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 export default function VolunteerSignUp({ isOpen, onClose }) {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [form, setForm] = useState({
     fullName: "",
@@ -30,31 +19,28 @@ export default function VolunteerSignUp({ isOpen, onClose }) {
     email: "",
     phone: "",
     password: "",
+    permitLink: "", // ✅ added
   });
-
-  const [permitFile, setPermitFile] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleFileChange = (e) => {
-    setPermitFile(e.target.files[0]);
+    if (errorMessage) setErrorMessage("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!permitFile) {
-      alert("Please upload a permit or proof document.");
+    if (!form.permitLink.trim()) {
+      setErrorMessage("Please paste a permit/proof link (e.g., Google Drive link).");
       return;
     }
 
     try {
+      setErrorMessage("");
       setLoading(true);
 
-      // Create Firebase Auth account
+      // 1) Create Auth account
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         form.email,
@@ -63,43 +49,32 @@ export default function VolunteerSignUp({ isOpen, onClose }) {
 
       const user = userCredential.user;
 
-      // Send email verification
+      // 2) Send email verification
       await sendEmailVerification(user);
 
-      //  Upload permit to Storage
-      const storageRef = ref(
-        storage,
-        `partner-permits/${user.uid}-${permitFile.name}`
-      );
-
-      await uploadBytes(storageRef, permitFile);
-      const permitUrl = await getDownloadURL(storageRef);
-
-      // Save application to Firestore
+      // 3) Save application to Firestore
       await setDoc(doc(db, "partnerApplications", user.uid), {
         fullName: form.fullName,
         organization: form.organization,
         email: form.email,
         phone: form.phone,
-        permitUrl,
+        permitLink: form.permitLink,
         status: "pending",
+        role: "partner",
         uid: user.uid,
         createdAt: serverTimestamp(),
       });
 
-        setSuccessMessage("Application submitted! Redirecting to dashboard…");
-        setTimeout(() => {
-        onClose();
+      setSuccessMessage("Application submitted! Redirecting to dashboard…");
+
+      // 4) Close + redirect (ONLY ONCE)
+      setTimeout(() => {
+        onClose?.();
         router.push("/volunteer-orgs/dashboard");
-        }, 1200);
-
-
-        onClose();
-        router.push("/volunteer-orgs/dashboard");
-
+      }, 1200);
     } catch (error) {
       console.error(error);
-      alert(error.message);
+      setErrorMessage(error.message || "Failed to submit application.");
       setLoading(false);
     }
   };
@@ -109,10 +84,11 @@ export default function VolunteerSignUp({ isOpen, onClose }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 px-4">
       <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-black/10">
-
         <button
+          type="button"
           onClick={onClose}
           className="absolute right-4 top-3 text-2xl text-neutral-500 hover:text-neutral-700"
+          aria-label="Close"
         >
           ×
         </button>
@@ -127,12 +103,17 @@ export default function VolunteerSignUp({ isOpen, onClose }) {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-5 space-y-3">
-
+            {errorMessage ? (
+              <div className="rounded-xl bg-red-100 p-3 text-sm text-red-700 ring-1 ring-red-200">
+                {errorMessage}
+              </div>
+            ) : null}
             <input
               type="text"
               name="fullName"
               required
               placeholder="Full Name"
+              value={form.fullName}
               onChange={handleChange}
               className="w-full rounded-xl border px-4 py-3"
             />
@@ -142,6 +123,7 @@ export default function VolunteerSignUp({ isOpen, onClose }) {
               name="organization"
               required
               placeholder="Organization Name"
+              value={form.organization}
               onChange={handleChange}
               className="w-full rounded-xl border px-4 py-3"
             />
@@ -151,6 +133,7 @@ export default function VolunteerSignUp({ isOpen, onClose }) {
               name="email"
               required
               placeholder="Email"
+              value={form.email}
               onChange={handleChange}
               className="w-full rounded-xl border px-4 py-3"
             />
@@ -160,6 +143,7 @@ export default function VolunteerSignUp({ isOpen, onClose }) {
               name="phone"
               required
               placeholder="Phone"
+              value={form.phone}
               onChange={handleChange}
               className="w-full rounded-xl border px-4 py-3"
             />
@@ -169,25 +153,33 @@ export default function VolunteerSignUp({ isOpen, onClose }) {
               name="password"
               required
               placeholder="Password"
+              value={form.password}
               onChange={handleChange}
               className="w-full rounded-xl border px-4 py-3"
             />
 
             <div>
               <label className="text-sm font-semibold">
-                Upload Permit / Proof Document
+                Permit / Proof Link (Google Drive, FB Page, Website)
               </label>
               <input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={handleFileChange}
-                className="mt-2 w-full"
+                type="url"
+                name="permitLink"
+                required
+                placeholder="https://drive.google.com/…"
+                value={form.permitLink}
+                onChange={handleChange}
+                className="mt-2 w-full rounded-xl border px-4 py-3"
               />
+              <p className="mt-1 text-xs text-neutral-600">
+                Tip: Make sure the link is accessible to viewers.
+              </p>
             </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="mt-4 w-full rounded-xl bg-primary py-3 font-semibold text-white shadow-md hover:shadow-lg"
+              className="mt-4 w-full rounded-xl bg-primary py-3 font-semibold text-white shadow-md hover:shadow-lg disabled:opacity-60"
             >
               {loading ? "Submitting..." : "Submit Application"}
             </button>
