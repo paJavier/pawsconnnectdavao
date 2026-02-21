@@ -131,25 +131,19 @@ export default function Navbar() {
         {/* Desktop Nav */}
         <nav className="hidden items-center gap-3 md:flex">
           <Link
+            href="/"
+            className="grad-btn px-4 py-2 text-sm"
+          >
+            Home
+          </Link>
+
+          <Link
             href="/#about-us"
             className="grad-btn-soft px-4 py-2 text-sm"
           >
             About Us
           </Link>
 
-          <Link
-            href="/report"
-            className="grad-btn px-4 py-2 text-sm"
-          >
-            Report
-          </Link>
-
-          <Link
-            href="/status"
-            className="grad-btn-soft px-4 py-2 text-sm"
-          >
-            Track
-          </Link>
           <Link
             href="/volunteer-orgs/dashboard"
             onClick={handleDashboardClick}
@@ -217,6 +211,14 @@ export default function Navbar() {
         <div className="md:hidden border-t border-black/5 bg-base px-6 pb-4">
           <nav className="flex flex-col gap-3 pt-4">
             <Link
+              href="/"
+              onClick={() => setOpen(false)}
+              className="grad-btn px-4 py-2 text-sm"
+            >
+              Home
+            </Link>
+
+            <Link
               href="/#about-us"
               onClick={() => setOpen(false)}
               className="grad-btn-soft px-4 py-2 text-sm"
@@ -225,19 +227,11 @@ export default function Navbar() {
             </Link>
 
             <Link
-              href="/report"
-              onClick={() => setOpen(false)}
+              href="/volunteer-orgs/dashboard"
+              onClick={handleDashboardClick}
               className="grad-btn px-4 py-2 text-sm"
             >
-              Report
-            </Link>
-
-            <Link
-              href="/status"
-              onClick={() => setOpen(false)}
-              className="grad-btn-soft px-4 py-2 text-sm"
-            >
-              Track
+              Dashboard
             </Link>
 
             {isLoggedIn ? (
@@ -258,14 +252,6 @@ export default function Navbar() {
                 Login
               </Link>
             )}
-
-            <Link
-              href="/volunteer-orgs/dashboard"
-              onClick={handleDashboardClick}
-              className="grad-btn px-4 py-2 text-sm"
-            >
-              Dashboard
-            </Link>
           </nav>
         </div>
       )}

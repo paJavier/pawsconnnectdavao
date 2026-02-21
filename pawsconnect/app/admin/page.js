@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, getDocsFromServer, serverTimestamp, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
@@ -116,11 +116,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    setIsAdmin(false);
-  };
-
   if (checkingAuth) {
     return (
       <div className="mx-auto max-w-5xl px-6 py-12">
@@ -217,12 +212,6 @@ export default function AdminPage() {
             className="grad-btn-soft px-4 py-2 text-sm text-secondary"
           >
             Refresh
-          </button>
-          <button
-            onClick={handleLogout}
-            className="grad-btn-soft px-4 py-2 text-sm text-neutral-800"
-          >
-            Log out
           </button>
         </div>
       </div>

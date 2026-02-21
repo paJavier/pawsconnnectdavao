@@ -138,7 +138,7 @@ export default function Home() {
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link
                   href="/report"
-                  className="group inline-flex items-center justify-center rounded-xl bg-accent px-6 py-3 font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0"
+                  className="grad-btn group inline-flex items-center justify-center px-6 py-3 active:translate-y-0"
                 >
                   Report a Stray
                   <span className="ml-2 transition group-hover:translate-x-0.5">
@@ -148,7 +148,7 @@ export default function Home() {
 
                 <Link
                   href="/status"
-                  className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 font-semibold text-primary shadow-sm ring-2 ring-primary/20 transition hover:-translate-y-0.5 hover:ring-primary/40 active:translate-y-0"
+                  className="grad-btn-soft inline-flex items-center justify-center px-6 py-3 active:translate-y-0"
                 >
                   Track My Report
                 </Link>
@@ -161,7 +161,7 @@ export default function Home() {
                     Partner volunteer groups
                   </h2>
                   <Link
-                    href="/partners"
+                    href="/partner-groups"
                     className="text-sm font-semibold text-secondary underline decoration-secondary/50 underline-offset-4 hover:decoration-secondary"
                   >
                     View all →
@@ -206,7 +206,7 @@ export default function Home() {
                   </Link>
 
                   <Link
-                    href="/partners"
+                    href="/partner-groups"
                     className="grad-btn-soft px-4 py-2 text-sm text-secondary"
                   >
                     Meet our partners
@@ -400,7 +400,7 @@ export default function Home() {
 
 function StatCard({ value, label }) {
   return (
-    <div className="rounded-2xl bg-base/35 p-5 transition hover:-translate-y-0.5 hover:shadow-sm">
+    <div className="grad-card p-5 transition hover:-translate-y-0.5 hover:shadow-sm">
       <p className="text-2xl font-extrabold text-primary">{value}</p>
       <p className="mt-1 text-sm text-neutral-700">{label}</p>
     </div>
