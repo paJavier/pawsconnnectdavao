@@ -124,7 +124,7 @@ export default function AdminPage() {
   if (checkingAuth) {
     return (
       <div className="mx-auto max-w-5xl px-6 py-12">
-        <div className="rounded-3xl bg-white p-8 shadow ring-1 ring-black/5">Loading admin panel...</div>
+        <div className="grad-card-ngo p-8">Loading admin panel...</div>
       </div>
     );
   }
@@ -132,7 +132,7 @@ export default function AdminPage() {
   if (!isAdmin) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <div className="rounded-3xl bg-white p-8 shadow ring-1 ring-black/5">
+        <div className="grad-card-ngo p-8">
           <h1 className="text-2xl font-extrabold text-primary">Admin Login</h1>
           <p className="mt-2 text-sm text-neutral-700">
             Sign in with an admin account (`users/{`uid`}.role = "admin"`).
@@ -171,7 +171,7 @@ export default function AdminPage() {
             <button
               type="submit"
               disabled={loginLoading}
-              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60"
+              className="grad-btn w-full py-3 text-sm disabled:opacity-60"
             >
               {loginLoading ? "Signing in..." : "Sign in as Admin"}
             </button>
@@ -205,7 +205,7 @@ export default function AdminPage() {
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+            className="rounded-xl border border-black/10 bg-white/90 px-3 py-2 text-sm"
           >
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
@@ -214,13 +214,13 @@ export default function AdminPage() {
           </select>
           <button
             onClick={() => loadApps(filter)}
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-secondary ring-2 ring-secondary/20 transition hover:ring-secondary/40"
+            className="grad-btn-soft px-4 py-2 text-sm text-secondary"
           >
             Refresh
           </button>
           <button
             onClick={handleLogout}
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-neutral-800 ring-1 ring-black/10 transition hover:bg-neutral-50"
+            className="grad-btn-soft px-4 py-2 text-sm text-neutral-800"
           >
             Log out
           </button>
@@ -229,14 +229,14 @@ export default function AdminPage() {
 
       <div className="mt-8 space-y-4">
         {loadingApps ? (
-          <div className="rounded-3xl bg-white p-8 text-neutral-700 shadow ring-1 ring-black/5">
+          <div className="grad-card-ngo p-8 text-neutral-700">
             Loading applications...
           </div>
         ) : null}
 
         {!loadingApps &&
           apps.map((a) => (
-            <div key={a.id} className="rounded-3xl bg-white p-6 shadow ring-1 ring-black/5">
+            <div key={a.id} className="grad-card-ngo p-6">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-lg font-extrabold text-primary">{a.organization || "-"}</p>
@@ -245,7 +245,7 @@ export default function AdminPage() {
                   <p className="text-sm text-neutral-700">Phone: {a.phone || "-"}</p>
                   <p className="mt-2 text-sm">
                     Status:{" "}
-                    <span className="rounded-full bg-base/60 px-3 py-1 text-xs font-semibold text-neutral-800">
+                    <span className="grad-pill">
                       {a.status}
                     </span>
                   </p>
@@ -265,34 +265,39 @@ export default function AdminPage() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2 sm:mt-0">
-                  <button
-                    onClick={() => handleSetStatus(a.id, "approved")}
-                    disabled={savingId === a.id}
-                    className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => handleSetStatus(a.id, "rejected")}
-                    disabled={savingId === a.id}
-                    className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    onClick={() => handleSetStatus(a.id, "pending")}
-                    disabled={savingId === a.id}
-                    className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-neutral-800 ring-1 ring-black/10 transition hover:bg-neutral-50 disabled:opacity-60"
-                  >
-                    Set Pending
-                  </button>
+                  {a.status === "pending" ? (
+                    <>
+                      <button
+                        onClick={() => handleSetStatus(a.id, "approved")}
+                        disabled={savingId === a.id}
+                        className="rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleSetStatus(a.id, "rejected")}
+                        disabled={savingId === a.id}
+                        className="rounded-xl bg-gradient-to-r from-rose-600 to-red-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleSetStatus(a.id, "pending")}
+                      disabled={savingId === a.id}
+                      className="grad-btn-soft px-4 py-2 text-sm text-neutral-800 disabled:opacity-60"
+                    >
+                      Set Pending
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           ))}
 
         {!loadingApps && apps.length === 0 ? (
-          <div className="rounded-3xl bg-white p-8 text-neutral-700 shadow ring-1 ring-black/5">
+          <div className="grad-card-ngo p-8 text-neutral-700">
             No applications found for this filter.
           </div>
         ) : null}

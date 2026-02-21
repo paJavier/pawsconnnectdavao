@@ -77,7 +77,7 @@ export default function VolunteerDashboardPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <div className="rounded-3xl bg-white p-8 shadow ring-1 ring-black/5">
+        <div className="grad-card-ngo p-8">
           Loading dashboard…
         </div>
       </div>
@@ -88,7 +88,7 @@ export default function VolunteerDashboardPage() {
   if (!emailVerified) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <div className="rounded-3xl bg-white p-8 shadow ring-1 ring-black/5">
+        <div className="grad-card-ngo p-8">
           <h1 className="text-2xl font-extrabold text-primary">Verify your email</h1>
           <p className="mt-2 text-neutral-700">
             Please verify your email address to access the volunteer dashboard.
@@ -98,14 +98,14 @@ export default function VolunteerDashboardPage() {
             <button
               onClick={handleResendVerification}
               disabled={sendingVerify}
-              className="rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60"
+              className="grad-btn text-sm disabled:opacity-60"
             >
               {sendingVerify ? "Sending…" : "Resend verification email"}
             </button>
 
             <button
               onClick={() => window.location.reload()}
-              className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-secondary ring-2 ring-secondary/20 transition hover:-translate-y-0.5 hover:ring-secondary/40"
+              className="grad-btn-soft text-sm text-secondary"
             >
               I already verified (Refresh)
             </button>
@@ -119,7 +119,7 @@ export default function VolunteerDashboardPage() {
   if (status === "no_application") {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <div className="rounded-3xl bg-white p-8 shadow ring-1 ring-black/5">
+        <div className="grad-card-ngo p-8">
           <h1 className="text-2xl font-extrabold text-primary">No application found</h1>
           <p className="mt-2 text-neutral-700">
             Your account exists, but we can’t find your partner application.
@@ -138,7 +138,7 @@ export default function VolunteerDashboardPage() {
   if (status === "pending") {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <div className="rounded-3xl bg-white p-8 shadow ring-1 ring-black/5">
+        <div className="grad-card-ngo p-8">
           <h1 className="text-2xl font-extrabold text-primary">Application Pending</h1>
           <p className="mt-2 text-neutral-700">
             Thanks, <span className="font-semibold">{appData?.organization}</span>. Your application is
@@ -176,7 +176,7 @@ export default function VolunteerDashboardPage() {
           <div className="mt-6">
             <button
               onClick={() => window.location.reload()}
-              className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-secondary ring-2 ring-secondary/20 transition hover:-translate-y-0.5 hover:ring-secondary/40"
+              className="grad-btn-soft text-sm text-secondary"
             >
               Refresh status
             </button>
@@ -190,7 +190,7 @@ export default function VolunteerDashboardPage() {
   if (status === "rejected") {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <div className="rounded-3xl bg-white p-8 shadow ring-1 ring-black/5">
+        <div className="grad-card-ngo p-8">
           <h1 className="text-2xl font-extrabold text-primary">Application Not Approved</h1>
           <p className="mt-2 text-neutral-700">
             Your partner application was not approved. You can contact the team or reapply with updated documents.
@@ -208,7 +208,7 @@ export default function VolunteerDashboardPage() {
   //dashboard
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
-      <div className="rounded-3xl border border-amber-300 bg-white p-6 shadow ring-1 ring-black/5 md:p-8">
+      <div className="grad-card-ngo border border-amber-200 p-6 md:p-8">
         <h1 className="text-center text-2xl font-black uppercase tracking-[0.25em] text-amber-700 md:text-3xl">
           Volunteer Dashboard
         </h1>
@@ -217,15 +217,15 @@ export default function VolunteerDashboardPage() {
         </p>
 
         <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="rounded-full bg-orange-300 px-4 py-2 text-center text-sm font-bold text-neutral-900">Active</div>
-          <div className="rounded-full bg-orange-300 px-4 py-2 text-center text-sm font-bold text-neutral-900">Pending</div>
-          <div className="rounded-full bg-orange-300 px-4 py-2 text-center text-sm font-bold text-neutral-900">Resolved</div>
-          <div className="rounded-full bg-orange-300 px-4 py-2 text-center text-sm font-bold text-neutral-900">Avg. Time</div>
+          <div className="grad-pill px-4 py-2 text-center text-sm font-bold text-neutral-900">Active</div>
+          <div className="grad-pill px-4 py-2 text-center text-sm font-bold text-neutral-900">Pending</div>
+          <div className="grad-pill px-4 py-2 text-center text-sm font-bold text-neutral-900">Resolved</div>
+          <div className="grad-pill px-4 py-2 text-center text-sm font-bold text-neutral-900">Avg. Time</div>
         </div>
 
-        <div className="mt-6 rounded-2xl bg-amber-100 p-4 md:p-5">
+        <div className="mt-6 rounded-2xl bg-gradient-to-br from-base/35 to-white p-4 ring-1 ring-black/5 md:p-5">
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl bg-orange-300 p-4">
+            <div className="rounded-2xl bg-gradient-to-br from-white to-secondary/10 p-4 ring-1 ring-black/5">
               <h2 className="text-center text-lg font-bold text-neutral-900">Report List</h2>
               <div className="mt-4 space-y-3">
                 {sampleReports.map((report) => (
@@ -238,7 +238,7 @@ export default function VolunteerDashboardPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl bg-yellow-300 p-4">
+            <div className="rounded-2xl bg-gradient-to-br from-white to-base/30 p-4 ring-1 ring-black/5">
               <h2 className="text-center text-lg font-bold text-neutral-900">Report Details</h2>
               <div className="mt-4 rounded-xl bg-white/80 p-5 text-center text-sm text-neutral-900">
                 <p>Ticket ID</p>
@@ -248,10 +248,10 @@ export default function VolunteerDashboardPage() {
                 <p>Status</p>
               </div>
               <div className="mt-4 flex gap-3">
-                <button className="flex-1 rounded-full bg-orange-400 px-4 py-2 text-sm font-bold text-neutral-900 transition hover:bg-orange-500">
+                <button className="grad-btn flex-1 rounded-full px-4 py-2 text-sm font-bold">
                   Accept
                 </button>
-                <button className="flex-1 rounded-full bg-orange-400 px-4 py-2 text-sm font-bold text-neutral-900 transition hover:bg-orange-500">
+                <button className="grad-btn-soft flex-1 rounded-full px-4 py-2 text-sm font-bold text-secondary">
                   Reassign
                 </button>
               </div>
@@ -262,13 +262,13 @@ export default function VolunteerDashboardPage() {
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
             href="/volunteer-orgs/dashboard/reports"
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-secondary ring-2 ring-secondary/20 transition hover:ring-secondary/40"
+            className="grad-btn-soft px-4 py-2 text-sm text-secondary"
           >
             Open full reports
           </Link>
           <button
             onClick={() => window.location.reload()}
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-secondary ring-2 ring-secondary/20 transition hover:ring-secondary/40"
+            className="grad-btn-soft px-4 py-2 text-sm text-secondary"
           >
             Refresh
           </button>

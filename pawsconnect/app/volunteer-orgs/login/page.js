@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import VolunteerSignUp from "@/components/VolunteerSignUp";`r`
+import VolunteerSignUp from "@/components/VolunteerSignUp";
+import { getAuthErrorMessage } from "@/lib/authErrorMessage";
 export default function VolunteerOrgsLoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -46,15 +47,15 @@ export default function VolunteerOrgsLoginPage() {
   if (checkingAuth) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <div className="rounded-3xl bg-white p-8 shadow ring-1 ring-black/5">Loading...</div>
+        <div className="grad-card-ngo p-8">Loading...</div>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
-      <div className="grid gap-6 rounded-3xl bg-white p-6 shadow ring-1 ring-black/5 md:grid-cols-2 md:p-8">
-        <section className="rounded-2xl bg-base/50 p-6">
+      <div className="grad-card-ngo grid gap-6 p-6 md:grid-cols-2 md:p-8">
+        <section className="grad-card p-6">
           <h1 className="text-2xl font-extrabold text-primary">Volunteer Partner Access</h1>
           <p className="mt-2 text-sm text-neutral-700">
             Continue to your dashboard by logging in, or create a new partner account to apply.
@@ -68,20 +69,20 @@ export default function VolunteerOrgsLoginPage() {
             <button
               type="button"
               onClick={() => setSignupOpen(true)}
-              className="rounded-xl bg-secondary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="grad-btn text-sm"
             >
               Sign up as partner
             </button>
             <Link
               href="/"
-              className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-primary ring-2 ring-primary/20 transition hover:ring-primary/40"
+              className="grad-btn-soft text-sm"
             >
               Back to home
             </Link>
           </div>
         </section>
 
-        <section className="rounded-2xl bg-white p-6 ring-1 ring-black/5">
+        <section className="grad-card p-6">
           <h2 className="text-xl font-extrabold text-primary">Login</h2>
           {message.text ? (
             <div
@@ -116,7 +117,7 @@ export default function VolunteerOrgsLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60"
+              className="grad-btn w-full py-3 text-sm disabled:opacity-60"
             >
               {loading ? "Logging in..." : "Login to dashboard"}
             </button>

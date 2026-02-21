@@ -4,11 +4,9 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import VolunteerSignUp from "@/components/VolunteerSignUp";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
-import { getAuthErrorMessage } from "@/lib/authErrorMessage";
+import { auth } from "@/lib/firebase";
 
 
 const partnerGroups = [
@@ -70,56 +68,31 @@ function Reveal({ children, className = "" }) {
     </div>
   );
 }
-
-// Floating paw layer
-function FloatingPaws() {
-  return (
-    <div className="pointer-events-none absolute inset-0 z-10">
-      <span className="paw-float absolute left-[8%] top-[18%] text-3xl opacity-30">
-        🐾
-      </span>
-      <span className="paw-float-slow absolute left-[22%] top-[55%] text-4xl opacity-25">
-        🐾
-      </span>
-      <span className="paw-float-fast absolute right-[12%] top-[22%] text-3xl opacity-25">
-        🐾
-      </span>
-      <span className="paw-float-slow absolute right-[18%] top-[62%] text-5xl opacity-20">
-        🐾
-      </span>
-    </div>
-  );
-}
-
-
 export default function Home() {
   const router = useRouter();
   const parallaxY = useParallax(0.22);
 
   const [isPartnerSignupOpen, setIsPartnerSignupOpen] = useState(false);
-  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-  const [loggingIn, setLoggingIn] = useState(false);
-  const [loginMessage, setLoginMessage] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const openPartnerSignup = () => setIsPartnerSignupOpen(true);
   const closePartnerSignup = () => setIsPartnerSignupOpen(false);
-  const handleLoginChange = (e) => {
-    const { name, value } = e.target;
-    setLoginForm((prev) => ({ ...prev, [name]: value }));
-  };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(Boolean(user));
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
     try {
-      setLoginMessage("");
-      setLoggingIn(true);
-      const cred = await signInWithEmailAndPassword(auth, loginForm.email.trim(), loginForm.password);
-      const userSnap = await getDoc(doc(db, "users", cred.user.uid));
-      const role = userSnap.exists() ? userSnap.data()?.role : null;
-      router.push(role === "admin" ? "/admin" : "/volunteer-orgs/dashboard");
-    } catch (error) {
-      setLoginMessage(getAuthErrorMessage(error, "Login failed. Please try again."));
-      setLoggingIn(false);
+      setLoggingOut(true);
+      await signOut(auth);
+    } finally {
+      setLoggingOut(false);
     }
   };
 
@@ -145,10 +118,10 @@ export default function Home() {
 
 
         {/* Hero content */}
-        <div className="relative z-20 mx-auto max-w-6xl px-6 py-12 md:py-16">
-          <div className="grid gap-10 md:grid-cols-2 md:items-start">
+        <div className="relative z-20 mx-auto max-w-7xl px-6 py-12 md:py-16">
+          <div className="grid gap-10 md:grid-cols-5 md:items-start">
             {/* LEFT */}
-            <div className="animate-fadeUp">
+            <div className="animate-fadeUp md:col-span-3">
               <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-sm font-medium text-neutral-800 shadow-sm ring-1 ring-black/5">
                 <span className="inline-block h-2 w-2 rounded-full bg-accent" />
                 Helping Davao care for stray animals together
@@ -182,7 +155,7 @@ export default function Home() {
               </div>
 
               {/* Partner Section */}
-              <div className="mt-10 rounded-3xl bg-white/70 p-6 shadow-sm ring-1 ring-black/5 backdrop-blur-sm">
+              <div className="grad-card mt-10 p-8 backdrop-blur-sm">
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="text-lg font-bold text-primary">
                     Partner volunteer groups
@@ -207,7 +180,7 @@ export default function Home() {
                       className="group flex flex-col items-center text-center"
                     >
                       {/* Logo Square */}
-                      <div className="relative aspect-square w-full max-w-[120px] overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition group-hover:-translate-y-1 group-hover:shadow-md">
+                      <div className="relative aspect-square w-full max-w-[150px] overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition group-hover:-translate-y-1 group-hover:shadow-md">
                         <Image
                           src={p.logo}
                           alt={p.name}
@@ -227,14 +200,14 @@ export default function Home() {
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link
                     href="/how-it-works"
-                    className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    className="grad-btn px-4 py-2 text-sm"
                   >
                     How PawsConnect works
                   </Link>
 
                   <Link
                     href="/partners"
-                    className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-secondary ring-2 ring-secondary/20 transition hover:-translate-y-0.5 hover:ring-secondary/40"
+                    className="grad-btn-soft px-4 py-2 text-sm text-secondary"
                   >
                     Meet our partners
                   </Link>
@@ -243,82 +216,66 @@ export default function Home() {
             </div>
 
             {/* RIGHT */}
-            <aside className="animate-fadeUp delay-100 space-y-4">
-                <div className="rounded-3xl bg-white/95 p-7 shadow-lg ring-1 ring-black/5 backdrop-blur-sm">
+            <aside className="animate-fadeUp delay-100 space-y-4 md:col-span-2">
+              <div className="grad-card-ngo p-8 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-extrabold text-primary">
-                    Volunteers & Groups
+                    {isLoggedIn ? "You Are Signed In" : "Volunteers & Groups"}
                   </h2>
-                  <span className="rounded-full bg-base/60 px-3 py-1 text-xs font-semibold text-neutral-800">
-                    Protected
+                  <span className="grad-pill">
+                    {isLoggedIn ? "Session Active" : "Protected"}
                   </span>
                 </div>
 
                 <p className="mt-2 text-sm text-neutral-700">
-                  Volunteer accounts will receive alerts and manage cases in the dashboard.
+                  {isLoggedIn
+                    ? "Access your dashboard to manage alerts, case updates, and partner activity."
+                    : "Volunteer accounts receive alerts and manage rescue cases in the dashboard."}
                 </p>
-                {loginMessage ? (
-                  <div className="mt-4 rounded-xl bg-red-100 p-3 text-sm text-red-700 ring-1 ring-red-200">
-                    {loginMessage}
-                  </div>
-                ) : null}
 
-                <form onSubmit={handleLogin} className="mt-6 space-y-3">
-                  <div>
-                    <label className="text-xs font-semibold text-neutral-700">Email</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={loginForm.email}
-                      onChange={handleLoginChange}
-                      placeholder="Enter your email"
-                      className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-neutral-700">Password</label>
-                    <input
-                      type="password"
-                      name="password"
-                      value={loginForm.password}
-                      onChange={handleLoginChange}
-                      placeholder="Enter your password"
-                      className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
-                      required
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-end">
-                    <Link
-                      href="/volunteer/forgot"
-                      className="text-xs font-semibold text-secondary underline decoration-secondary/50 underline-offset-4 hover:decoration-secondary"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-
-                  <div className="grid gap-3">
-                    <button
-                      type="submit"
-                      disabled={loggingIn}
-                      className="rounded-xl bg-secondary px-5 py-3 text-center font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
-                    >
-                      {loggingIn ? "Logging in..." : "Log In"}
-                    </button>
-
-                    <div className="text-center text-xs text-neutral-700">
-                      Need an account?{" "}
+                {isLoggedIn ? (
+                  <div className="mt-6 grid gap-3">
                     <button
                       type="button"
-                      onClick={openPartnerSignup}
-                      className="font-semibold text-primary underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
+                      onClick={() => router.push("/volunteer-orgs/dashboard")}
+                      className="grad-btn text-center"
                     >
-                      Sign up
+                      Go to Dashboard
                     </button>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      disabled={loggingOut}
+                      className="grad-btn-soft text-center text-secondary disabled:opacity-70"
+                    >
+                      {loggingOut ? "Logging out..." : "Logout"}
+                    </button>
+                    <div className="rounded-2xl bg-base/40 p-4 text-xs text-neutral-800">
+                      <p className="font-semibold">Dashboard access is active.</p>
+                      <p className="mt-1">
+                        Your session is verified for volunteer tools and case management.
+                      </p>
                     </div>
-
+                  </div>
+                ) : (
+                  <div className="mt-6 grid gap-3">
+                    <button
+                      type="button"
+                      onClick={() => window.dispatchEvent(new CustomEvent("paws:open-login-modal"))}
+                      className="grad-btn text-center"
+                    >
+                      Log In
+                    </button>
+                    <div className="text-center text-xs text-neutral-700">
+                      Need an account?{" "}
+                      <button
+                        type="button"
+                        onClick={openPartnerSignup}
+                        className="font-semibold text-primary underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
+                      >
+                        Sign up
+                      </button>
+                    </div>
                     <div className="rounded-2xl bg-base/40 p-4 text-xs text-neutral-800">
                       <p className="font-semibold">Dashboard access is restricted.</p>
                       <p className="mt-1">
@@ -326,10 +283,10 @@ export default function Home() {
                       </p>
                     </div>
                   </div>
-                </form>
+                )}
               </div>
               {/* Become a Partner CTA */}
-              <div className="rounded-3xl bg-gradient-to-br from-base/80 to-white p-6 shadow-sm ring-1 ring-black/5 backdrop-blur-sm">
+              <div className="grad-card p-6 backdrop-blur-sm">
                 <h3 className="text-sm font-bold text-primary">
                   Want to help more strays?
                 </h3>
@@ -343,7 +300,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={openPartnerSignup}
-                    className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+                    className="grad-btn inline-flex items-center justify-center text-sm"
                   >
                     Become a Partner →
                   </button>
@@ -353,12 +310,9 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Floating paws */}
-        <FloatingPaws />
       {/* IMPACT (Reveal on scroll) */}
       <Reveal className="mx-auto mt-20 max-w-6xl px-6 pb-16">
-        <div className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-black/5">
+        <div className="grad-card p-7">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
               <h3 className="text-2xl font-extrabold text-primary">
@@ -369,7 +323,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="inline-flex items-center gap-2 rounded-full bg-base/60 px-4 py-2 text-xs font-semibold text-neutral-800">
+            <div className="grad-pill inline-flex items-center gap-2 px-4 py-2">
               SDG 11 • SDG 15
             </div>
           </div>
@@ -395,7 +349,51 @@ export default function Home() {
           </div>
         </div>
       </Reveal>
-    <VolunteerSignUp isOpen={isPartnerSignupOpen} onClose={closePartnerSignup} />             
+
+      <section id="about-us" className="mx-auto max-w-6xl px-6 pb-16 scroll-mt-28">
+        <div className="grad-card p-7">
+          <span className="inline-flex items-center rounded-full bg-white px-3 py-1 text-sm font-medium text-secondary">
+            About PawsConnect Davao
+          </span>
+
+          <h3 className="mt-4 text-3xl font-extrabold text-primary">
+            Built for community rescue response
+          </h3>
+
+          <p className="mt-3 max-w-3xl text-secondary">
+            PawsConnect Davao helps residents, volunteers, and partner organizations work together
+            for faster and safer stray animal response. We focus on verified reporting workflows,
+            protected volunteer tools, and transparent case updates.
+          </p>
+        </div>
+
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
+          <div className="grad-card p-6">
+            <h4 className="text-lg font-extrabold text-primary">Our mission</h4>
+            <p className="mt-2 text-sm text-secondary">
+              Make reporting easier and rescue coordination faster, while keeping data quality high.
+            </p>
+          </div>
+
+          <div className="grad-card p-6">
+            <h4 className="text-lg font-extrabold text-primary">How we work</h4>
+            <p className="mt-2 text-sm text-secondary">
+              Residents submit reports, verified volunteers receive alerts, and partner groups
+              manage updates in one workflow.
+            </p>
+          </div>
+
+          <div className="grad-card p-6">
+            <h4 className="text-lg font-extrabold text-primary">Why it matters</h4>
+            <p className="mt-2 text-sm text-secondary">
+              Better coordination improves response speed and increases the number of successful
+              rescue outcomes.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <VolunteerSignUp isOpen={isPartnerSignupOpen} onClose={closePartnerSignup} />
     </main>
   );
 }
@@ -422,3 +420,4 @@ function Bar({ label, value, widthClass, color }) {
     </div>
   );
 }
+
