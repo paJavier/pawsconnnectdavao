@@ -13,6 +13,7 @@ export default function VolunteerOrgsLoginPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [signupOpen, setSignupOpen] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
   useEffect(() => {
@@ -105,15 +106,25 @@ export default function VolunteerOrgsLoginPage() {
               placeholder="Email"
               className="w-full rounded-xl border px-4 py-3"
             />
-            <input
-              type="password"
-              name="password"
-              required
-              value={form.password}
-              onChange={handleChange}
-              placeholder="Password"
-              className="w-full rounded-xl border px-4 py-3"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                required
+                value={form.password}
+                onChange={handleChange}
+                placeholder="Password"
+                className="w-full rounded-xl border px-4 py-3 pr-20"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-secondary hover:underline"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
             <button
               type="submit"
               disabled={loading}

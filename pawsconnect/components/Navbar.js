@@ -16,6 +16,7 @@ export default function Navbar() {
   const [isMounted, setIsMounted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const [loginMessage, setLoginMessage] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
@@ -44,6 +45,7 @@ export default function Navbar() {
     setIsLoginOpen(false);
     setLoginMessage("");
     setLoggingIn(false);
+    setShowLoginPassword(false);
   };
 
   const handleLoginChange = (e) => {
@@ -322,15 +324,25 @@ export default function Navbar() {
 
                   <div>
                     <label className="text-xs font-semibold text-neutral-700">Password</label>
-                    <input
-                      type="password"
-                      name="password"
-                      value={loginForm.password}
-                      onChange={handleLoginChange}
-                      placeholder="Enter your password"
-                    className="mt-1 w-full rounded-xl border border-black/10 bg-white/95 px-4 py-3 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
-                      required
-                    />
+                    <div className="relative mt-1">
+                      <input
+                        type={showLoginPassword ? "text" : "password"}
+                        name="password"
+                        value={loginForm.password}
+                        onChange={handleLoginChange}
+                        placeholder="Enter your password"
+                        className="w-full rounded-xl border border-black/10 bg-white/95 px-4 py-3 pr-20 text-sm outline-none ring-2 ring-transparent transition focus:ring-primary/30"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-secondary hover:underline"
+                        aria-label={showLoginPassword ? "Hide password" : "Show password"}
+                      >
+                        {showLoginPassword ? "Hide" : "Show"}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-end">

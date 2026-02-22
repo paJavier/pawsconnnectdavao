@@ -13,6 +13,7 @@ export default function AdminPage() {
   const [apps, setApps] = useState([]);
   const [filter, setFilter] = useState("pending");
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
@@ -154,15 +155,25 @@ export default function AdminPage() {
               placeholder="Admin email"
               className="w-full rounded-xl border px-4 py-3"
             />
-            <input
-              type="password"
-              name="password"
-              value={loginForm.password}
-              onChange={handleLoginChange}
-              required
-              placeholder="Password"
-              className="w-full rounded-xl border px-4 py-3"
-            />
+            <div className="relative">
+              <input
+                type={showLoginPassword ? "text" : "password"}
+                name="password"
+                value={loginForm.password}
+                onChange={handleLoginChange}
+                required
+                placeholder="Password"
+                className="w-full rounded-xl border px-4 py-3 pr-20"
+              />
+              <button
+                type="button"
+                onClick={() => setShowLoginPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-secondary hover:underline"
+                aria-label={showLoginPassword ? "Hide password" : "Show password"}
+              >
+                {showLoginPassword ? "Hide" : "Show"}
+              </button>
+            </div>
             <button
               type="submit"
               disabled={loginLoading}

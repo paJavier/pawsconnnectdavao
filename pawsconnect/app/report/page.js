@@ -4,7 +4,8 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { storage } from "@/lib/firebase";
+import { storage, auth } from "@/lib/firebase";
+import { signInAnonymously } from "firebase/auth";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), {
   ssr: false,
@@ -18,14 +19,31 @@ const ReportMap = dynamic(() => import("@/components/ReportMap"), {
 export default function ReportPage() {
   const [lat, setLat] = useState(null);
   const [lng, setLng] = useState(null);
+  const [address, setAddress] = useState("");
+
   const [urgency, setUrgency] = useState("LOW");
   const [description, setDescription] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [ticketId, setTicketId] = useState(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
   const [photoFile, setPhotoFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
+
+  // OPTIONAL (recommended): silent anonymous auth (reporters still "don't log in")
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!auth?.currentUser) {
+          await signInAnonymously(auth);
+        }
+      } catch (e) {
+        // If anonymous auth fails, we still allow IP-only limiting on server.
+        console.error("Anonymous auth failed:", e);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (!photoFile) {
@@ -60,14 +78,17 @@ export default function ReportPage() {
 
   async function handleSubmit() {
     setError("");
+
     if (!lat || !lng) return setError("Please select a location.");
     if (!description.trim()) return setError("Please add a description.");
     if (!captchaToken) return setError("Please complete the captcha.");
 
     try {
       setSubmitting(true);
+
       let photoUrl = null;
 
+      // Upload photo to Firebase Storage (optional)
       if (photoFile) {
         const ext = photoFile.name.split(".").pop() || "jpg";
         const fileName = `report-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -76,16 +97,20 @@ export default function ReportPage() {
         photoUrl = await getDownloadURL(storageRef);
       }
 
+      const uid = auth?.currentUser?.uid || null;
+
       const res = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lat,
           lng,
+          address,
           urgency,
           description,
           captchaToken,
           photoUrl,
+          uid, // for UID rate limiting (anonymous auth)
         }),
       });
 
@@ -104,15 +129,26 @@ export default function ReportPage() {
     }
   }
 
+  // Submitted view
   if (ticketId) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
         <div className="grad-card p-8 text-center">
           <span className="grad-pill">Submission Complete</span>
-          <h1 className="mt-4 text-2xl font-extrabold text-primary">Report Successfully Submitted</h1>
+          <h1 className="mt-4 text-2xl font-extrabold text-primary">
+            Report Successfully Submitted
+          </h1>
           <p className="mt-3 text-neutral-700">
-            Tracking ID: <span className="font-mono font-semibold text-neutral-900">{ticketId}</span>
+            Tracking ID:{" "}
+            <span className="font-mono font-semibold text-neutral-900">{ticketId}</span>
           </p>
+
+          {address ? (
+            <p className="mt-2 text-sm text-neutral-700">
+              Location: <span className="font-medium text-neutral-900">{address}</span>
+            </p>
+          ) : null}
+
           {photoFile ? (
             <p className="mt-2 text-sm text-neutral-700">Photo attached successfully.</p>
           ) : null}
@@ -134,47 +170,47 @@ export default function ReportPage() {
     <div className="mx-auto max-w-6xl px-6 py-10">
       <section className="grad-card p-8">
         <span className="grad-pill">Resident Reporting</span>
-        <h1 className="mt-4 text-3xl font-extrabold text-primary md:text-4xl">Report a Stray Animal</h1>
+        <h1 className="mt-4 text-3xl font-extrabold text-primary md:text-4xl">
+          Report a Stray Animal
+        </h1>
         <p className="mt-2 max-w-3xl text-sm text-neutral-700">
           Share the location and details of the stray so nearby volunteer groups can respond faster.
         </p>
       </section>
 
       <section className="mt-8 grid gap-6 md:grid-cols-2">
+        {/* LOCATION */}
         <div className="grad-card p-6">
           <h2 className="text-lg font-extrabold text-primary">Select Location</h2>
-          <p className="mt-1 text-sm text-neutral-700">Pin the exact location for faster verification.</p>
+          <p className="mt-1 text-sm text-neutral-700">
+            Search an address/landmark or pin the exact location for faster verification.
+          </p>
 
           <div className="mt-4 overflow-hidden rounded-2xl ring-1 ring-black/10">
             <ReportMap
               setLocation={(loc) => {
                 const nextLat = Number(loc?.lat);
                 const nextLng = Number(loc?.lng);
+                const nextAddr = String(loc?.address || "");
+
                 if (!Number.isNaN(nextLat) && !Number.isNaN(nextLng)) {
                   setLat(Number(nextLat.toFixed(6)));
                   setLng(Number(nextLng.toFixed(6)));
+                  setAddress(nextAddr);
                 }
               }}
             />
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              className="grad-btn-soft text-sm"
-              onClick={() => {
-                setLat(7.1907);
-                setLng(125.4553);
-              }}
-            >
-              Set sample location
-            </button>
+          <div className="mt-4 flex flex-col gap-1">
             <span className="text-sm text-neutral-700">
               {lat && lng ? `(${lat}, ${lng})` : "No location selected yet"}
             </span>
+            {address ? <span className="text-xs text-neutral-600">{address}</span> : null}
           </div>
         </div>
 
+        {/* FORM */}
         <div className="grad-card-ngo p-6">
           <h2 className="text-lg font-extrabold text-primary">Report Details</h2>
           <p className="mt-1 text-sm text-neutral-700">Describe what happened and set urgency.</p>
@@ -217,6 +253,7 @@ export default function ReportPage() {
 
           <div className="mt-4 rounded-2xl bg-white/70 p-4 ring-1 ring-black/10">
             <p className="text-sm font-semibold text-neutral-700">Captcha</p>
+            {/* Replace this demo button with your real captcha widget */}
             <button
               className="grad-btn-soft mt-3 text-sm"
               onClick={() => setCaptchaToken("demo-token")}
@@ -227,7 +264,9 @@ export default function ReportPage() {
           </div>
 
           {error ? (
-            <p className="mt-3 rounded-xl bg-red-100 p-3 text-sm text-red-700 ring-1 ring-red-200">{error}</p>
+            <p className="mt-3 rounded-xl bg-red-100 p-3 text-sm text-red-700 ring-1 ring-red-200">
+              {error}
+            </p>
           ) : null}
 
           <button
