@@ -93,34 +93,54 @@ async function uploadReportPhoto(file) {
 }
 
 async function verifyTurnstile(token, ip) {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
+  const secret = process.env.TURNSTILE_SECRET_KEY?.trim();
   if (!secret) throw new Error("Missing TURNSTILE_SECRET_KEY");
 
-  const formData = new FormData();
-  formData.append("secret", secret);
-  formData.append("response", token);
-  if (ip && ip !== "unknown") formData.append("remoteip", ip);
+  async function verifyAttempt(includeRemoteIp) {
+    const formData = new FormData();
+    formData.append("secret", secret);
+    formData.append("response", token);
+    if (includeRemoteIp && ip && ip !== "unknown") formData.append("remoteip", ip);
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-  let resp;
-  try {
-    resp = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      body: formData,
-      signal: controller.signal,
-    });
-  } catch (error) {
-    if (error?.name === "AbortError") {
-      throw new Error("Captcha verification timed out. Please try again.");
+    try {
+      const resp = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      });
+      return await resp.json();
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        throw new Error("Captcha verification timed out. Please try again.");
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
   }
 
-  const data = await resp.json();
+  let data = await verifyAttempt(true);
+
+  if (
+    data?.success !== true &&
+    Array.isArray(data?.["error-codes"]) &&
+    data["error-codes"].includes("invalid-remoteip")
+  ) {
+    data = await verifyAttempt(false);
+  }
+
+  if (data?.success !== true) {
+    console.error("Turnstile verification failed", {
+      errorCodes: data?.["error-codes"] || [],
+      hostname: data?.hostname || null,
+      action: data?.action || null,
+      cdata: data?.cdata || null,
+    });
+  }
+
   return data?.success === true;
 }
 
