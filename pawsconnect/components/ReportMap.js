@@ -12,12 +12,21 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-function LocationMarker({ position, setPosition, setLocation }) {
+function LocationMarker({ position, setPosition, setLocation, reverseGeocode }) {
   useMapEvents({
-    click(e) {
+    async click(e) {
       setPosition(e.latlng);
-      // send lat/lng only (address optional)
-      setLocation({ lat: e.latlng.lat, lng: e.latlng.lng, address: "" });
+      const baseLoc = { lat: e.latlng.lat, lng: e.latlng.lng, address: "" };
+      setLocation(baseLoc);
+
+      try {
+        const address = await reverseGeocode(e.latlng.lat, e.latlng.lng);
+        if (address) {
+          setLocation({ ...baseLoc, address });
+        }
+      } catch {
+        // Keep lat/lng even if reverse geocoding fails.
+      }
     },
   });
 
@@ -35,6 +44,25 @@ export default function ReportMap({ setLocation }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+
+  async function reverseGeocode(lat, lng) {
+    const url =
+      "https://nominatim.openstreetmap.org/reverse?" +
+      new URLSearchParams({
+        lat: String(lat),
+        lon: String(lng),
+        format: "jsonv2",
+        zoom: "18",
+      });
+
+    const res = await fetch(url, {
+      headers: { "Accept-Language": "en" },
+    });
+
+    if (!res.ok) throw new Error("Failed reverse geocode");
+    const data = await res.json();
+    return (data?.display_name || "").toString();
+  }
 
   async function searchAddress() {
     setErr("");
@@ -165,6 +193,7 @@ export default function ReportMap({ setLocation }) {
           position={position}
           setPosition={setPosition}
           setLocation={setLocation}
+          reverseGeocode={reverseGeocode}
         />
       </MapContainer>
     </div>

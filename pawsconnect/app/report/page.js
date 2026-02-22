@@ -3,9 +3,6 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { storage, auth } from "@/lib/firebase";
-import { signInAnonymously } from "firebase/auth";
 import TurnstileWidget from "@/components/TurnstileWidget";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), {
@@ -31,20 +28,6 @@ export default function ReportPage() {
 
   const [photoFile, setPhotoFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
-
-  // OPTIONAL (recommended): silent anonymous auth (reporters still "don't log in")
-  useEffect(() => {
-    (async () => {
-      try {
-        if (!auth?.currentUser) {
-          await signInAnonymously(auth);
-        }
-      } catch (e) {
-        // If anonymous auth fails, we still allow IP-only limiting on server.
-        console.error("Anonymous auth failed:", e);
-      }
-    })();
-  }, []);
 
   useEffect(() => {
     if (!photoFile) {
@@ -86,34 +69,28 @@ export default function ReportPage() {
 
     try {
       setSubmitting(true);
+      const formData = new FormData();
+      formData.append("lat", String(lat));
+      formData.append("lng", String(lng));
+      formData.append("address", address || "");
+      formData.append("urgency", urgency);
+      formData.append("description", description);
+      formData.append("captchaToken", captchaToken);
+      if (photoFile) formData.append("photo", photoFile);
 
-      let photoUrl = null;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-      // Upload photo to Firebase Storage (optional)
-      if (photoFile) {
-        const ext = photoFile.name.split(".").pop() || "jpg";
-        const fileName = `report-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const storageRef = ref(storage, `reports/${fileName}`);
-        await uploadBytes(storageRef, photoFile);
-        photoUrl = await getDownloadURL(storageRef);
+      let res;
+      try {
+        res = await fetch("/api/reports", {
+          method: "POST",
+          body: formData,
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      const uid = auth?.currentUser?.uid || null;
-
-      const res = await fetch("/api/reports", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lat,
-          lng,
-          address,
-          urgency,
-          description,
-          captchaToken,
-          photoUrl,
-          uid, // for UID rate limiting (anonymous auth)
-        }),
-      });
 
       const data = await res.json();
 
@@ -123,7 +100,11 @@ export default function ReportPage() {
       }
 
       setTicketId(data.ticketId);
-    } catch {
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        setError("Submit request timed out. Please try again.");
+        return;
+      }
       setError("Network error. Please try again.");
     } finally {
       setSubmitting(false);

@@ -23,6 +23,75 @@ function normalizeUrgency(value) {
   return valid.has(urgency) ? urgency : "LOW";
 }
 
+function parseNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+async function uploadReportPhoto(file) {
+  if (!file) return null;
+  if (typeof file.arrayBuffer !== "function") {
+    throw new Error("Invalid image file.");
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("Image must be 5MB or below.");
+  }
+
+  const contentType = file.type || "";
+  if (!contentType.startsWith("image/")) {
+    throw new Error("Please upload an image file.");
+  }
+
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+  const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+  const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new Error("Missing Cloudinary env vars.");
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const folder = "pawsconnect/reports";
+  const publicId = `report-${Date.now()}-${crypto.randomUUID()}`;
+  const signaturePayload = `folder=${folder}&public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
+  const signature = crypto.createHash("sha1").update(signaturePayload).digest("hex");
+
+  const uploadForm = new FormData();
+  uploadForm.append("file", file);
+  uploadForm.append("api_key", apiKey);
+  uploadForm.append("timestamp", String(timestamp));
+  uploadForm.append("folder", folder);
+  uploadForm.append("public_id", publicId);
+  uploadForm.append("signature", signature);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+  let resp;
+  try {
+    resp = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: "POST",
+      body: uploadForm,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("Image upload timed out. Please try again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  const data = await resp.json();
+  if (!resp.ok) {
+    throw new Error(data?.error?.message || "Image upload failed.");
+  }
+
+  return data?.secure_url || null;
+}
+
 async function verifyTurnstile(token, ip) {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) throw new Error("Missing TURNSTILE_SECRET_KEY");
@@ -32,10 +101,24 @@ async function verifyTurnstile(token, ip) {
   formData.append("response", token);
   if (ip && ip !== "unknown") formData.append("remoteip", ip);
 
-  const resp = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    body: formData,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  let resp;
+  try {
+    resp = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      body: formData,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("Captcha verification timed out. Please try again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const data = await resp.json();
   return data?.success === true;
@@ -43,19 +126,44 @@ async function verifyTurnstile(token, ip) {
 
 export async function POST(req) {
   try {
-    const body = await req.json();
-    const {
-      lat,
-      lng,
-      address = "",
-      urgency,
-      description,
-      captchaToken,
-      uid = null,
-      photoUrl = null,
-    } = body || {};
+    const contentType = req.headers.get("content-type") || "";
 
-    if (typeof lat !== "number" || typeof lng !== "number") {
+    let lat;
+    let lng;
+    let address = "";
+    let urgency;
+    let description;
+    let captchaToken;
+    let uid = null;
+    let photoUrl = null;
+    let photoFile = null;
+
+    if (contentType.includes("multipart/form-data")) {
+      const form = await req.formData();
+      lat = parseNumber(form.get("lat"));
+      lng = parseNumber(form.get("lng"));
+      address = (form.get("address") || "").toString();
+      urgency = (form.get("urgency") || "").toString();
+      description = (form.get("description") || "").toString();
+      captchaToken = (form.get("captchaToken") || "").toString();
+      uid = (form.get("uid") || "").toString() || null;
+      const maybeFile = form.get("photo");
+      if (maybeFile && typeof maybeFile === "object" && typeof maybeFile.arrayBuffer === "function") {
+        photoFile = maybeFile;
+      }
+    } else {
+      const body = await req.json();
+      lat = body?.lat;
+      lng = body?.lng;
+      address = body?.address || "";
+      urgency = body?.urgency;
+      description = body?.description;
+      captchaToken = body?.captchaToken;
+      uid = body?.uid || null;
+      photoUrl = body?.photoUrl || null;
+    }
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       return Response.json({ error: "Invalid location." }, { status: 400 });
     }
 
@@ -69,6 +177,10 @@ export async function POST(req) {
 
     if (photoUrl && typeof photoUrl !== "string") {
       return Response.json({ error: "Invalid image URL." }, { status: 400 });
+    }
+
+    if (photoFile) {
+      photoUrl = await uploadReportPhoto(photoFile);
     }
 
     const ip = getClientIp(req);
