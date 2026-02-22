@@ -1,6 +1,5 @@
 "use client";
 
-import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 
 export default function TurnstileWidget({
@@ -21,7 +20,7 @@ export default function TurnstileWidget({
       return;
     }
     if (!window.turnstile || !elRef.current) return;
-    if (widgetIdRef.current !== null) return; // prevent double render
+    if (widgetIdRef.current !== null) return;
 
     widgetIdRef.current = window.turnstile.render(elRef.current, {
       sitekey: siteKey,
@@ -35,23 +34,45 @@ export default function TurnstileWidget({
   };
 
   useEffect(() => {
+    let intervalId;
+    let timeoutId;
+
+    if (window.turnstile) {
+      renderWidget();
+    } else {
+      intervalId = window.setInterval(() => {
+        if (window.turnstile) {
+          renderWidget();
+          window.clearInterval(intervalId);
+          if (timeoutId) window.clearTimeout(timeoutId);
+        }
+      }, 200);
+
+      timeoutId = window.setTimeout(() => {
+        if (!window.turnstile) {
+          onError?.("Captcha failed to load. Please refresh and try again.");
+        }
+      }, 8000);
+    }
+
     return () => {
+      if (intervalId) window.clearInterval(intervalId);
+      if (timeoutId) window.clearTimeout(timeoutId);
       if (window.turnstile && widgetIdRef.current !== null) {
-        window.turnstile.remove(widgetIdRef.current);
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+        } catch {
+          // ignore cleanup errors
+        }
         widgetIdRef.current = null;
       }
     };
-  }, []);
+  }, [siteKey]);
 
   return (
     <div className={className}>
-      <Script
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-        strategy="afterInteractive"
-        onLoad={renderWidget}
-      />
       {!ready ? (
-        <div className="text-xs text-neutral-600">Loading captcha…</div>
+        <div className="text-xs text-neutral-600">Loading captcha...</div>
       ) : null}
       <div ref={elRef} />
     </div>

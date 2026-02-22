@@ -1,5 +1,6 @@
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
+import Script from "next/script";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -12,6 +13,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="min-h-screen bg-gray-50">
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+          strategy="afterInteractive"
+        />
         <Navbar />
         <main className="mx-auto max-w-6xl p-4">{children}</main>
         <Footer />
