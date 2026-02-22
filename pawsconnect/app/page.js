@@ -75,6 +75,13 @@ export default function Home() {
   const [isPartnerSignupOpen, setIsPartnerSignupOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [impact, setImpact] = useState({
+    averageResponseLabel: "--",
+    totalReports: 0,
+    resolvedReports: 0,
+    activeVolunteerAccounts: 0,
+  });
+  const [impactLoaded, setImpactLoaded] = useState(false);
 
   const openPartnerSignup = () => setIsPartnerSignupOpen(true);
   const closePartnerSignup = () => setIsPartnerSignupOpen(false);
@@ -86,6 +93,42 @@ export default function Home() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/impact", { cache: "no-store" });
+        const data = await res.json();
+        if (!res.ok || cancelled) return;
+        setImpact({
+          averageResponseLabel: data?.averageResponseLabel || "--",
+          totalReports: Number(data?.totalReports || 0),
+          resolvedReports: Number(data?.resolvedReports || 0),
+          activeVolunteerAccounts: Number(data?.activeVolunteerAccounts || 0),
+        });
+      } catch {
+        // Keep fallback values on homepage if metrics endpoint is unavailable.
+      } finally {
+        if (!cancelled) setImpactLoaded(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const maxOverviewValue = Math.max(
+    impact.totalReports || 0,
+    impact.resolvedReports || 0,
+    impact.activeVolunteerAccounts || 0,
+    1
+  );
+  const reportsPct = Math.max(6, Math.round((impact.totalReports / maxOverviewValue) * 100));
+  const rescuesPct = Math.max(6, Math.round((impact.resolvedReports / maxOverviewValue) * 100));
+  const activePct = Math.max(6, Math.round((impact.activeVolunteerAccounts / maxOverviewValue) * 100));
 
   const handleLogout = async () => {
     try {
@@ -319,7 +362,9 @@ export default function Home() {
                 Our Community Impact
               </h3>
               <p className="text-sm text-neutral-700">
-                Prototype metrics for demonstration (will update with real usage data).
+                {impactLoaded
+                  ? "Live metrics based on reports and currently active verified volunteer accounts."
+                  : "Loading live community metrics..."}
               </p>
             </div>
 
@@ -329,10 +374,10 @@ export default function Home() {
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard value="15 mins" label="Average Response Time" />
-            <StatCard value="128" label="Reports Submitted" />
-            <StatCard value="92" label="Successful Rescues" />
-            <StatCard value="14" label="Active Volunteer Groups" />
+            <StatCard value={impact.averageResponseLabel} label="Average Response Time" />
+            <StatCard value={String(impact.totalReports)} label="Reports Submitted" />
+            <StatCard value={String(impact.resolvedReports)} label="Successful Rescues" />
+            <StatCard value={String(impact.activeVolunteerAccounts)} label="Active Volunteer Accounts" />
           </div>
 
           <div className="mt-7 rounded-2xl bg-base/45 p-6">
@@ -342,9 +387,9 @@ export default function Home() {
             </div>
 
             <div className="mt-4 space-y-3">
-              <Bar label="Reports" value="128" widthClass="w-[92%]" color="bg-accent" />
-              <Bar label="Rescues" value="92" widthClass="w-[70%]" color="bg-secondary" />
-              <Bar label="Active groups" value="14" widthClass="w-[32%]" color="bg-primary" />
+              <Bar label="Reports" value={String(impact.totalReports)} widthPct={reportsPct} color="bg-accent" />
+              <Bar label="Rescues" value={String(impact.resolvedReports)} widthPct={rescuesPct} color="bg-secondary" />
+              <Bar label="Active accounts" value={String(impact.activeVolunteerAccounts)} widthPct={activePct} color="bg-primary" />
             </div>
           </div>
         </div>
@@ -407,7 +452,7 @@ function StatCard({ value, label }) {
   );
 }
 
-function Bar({ label, value, widthClass, color }) {
+function Bar({ label, value, widthPct, color }) {
   return (
     <div>
       <div className="flex items-center justify-between text-sm">
@@ -415,7 +460,10 @@ function Bar({ label, value, widthClass, color }) {
         <span className="font-semibold text-neutral-800">{value}</span>
       </div>
       <div className="mt-2 h-3 w-full rounded-full bg-white/70 ring-1 ring-black/5">
-        <div className={`h-3 rounded-full ${widthClass} ${color} transition-all`} />
+        <div
+          className={`h-3 rounded-full ${color} transition-all`}
+          style={{ width: `${Math.min(100, Math.max(0, widthPct || 0))}%` }}
+        />
       </div>
     </div>
   );

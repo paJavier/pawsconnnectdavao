@@ -1,5 +1,6 @@
 import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
 function getServiceAccount() {
   const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
@@ -27,3 +28,4 @@ export const adminDb = getFirestore(adminApp);
 
 // ✅ export FieldValue so routes can use serverTimestamp()
 export const adminFieldValue = FieldValue;
+export const adminAuth = getAuth(adminApp);
