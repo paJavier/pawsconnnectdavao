@@ -19,7 +19,7 @@ export default function VolunteerSignUp({ isOpen, onClose }) {
     email: "",
     phone: "",
     password: "",
-    permitLink: "", // ✅ added
+    permitLink: "", //permit/ business links, facebook page, websites
   });
 
   const handleChange = (e) => {

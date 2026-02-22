@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { storage, auth } from "@/lib/firebase";
 import { signInAnonymously } from "firebase/auth";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 const ReportMap = dynamic(() => import("@/components/ReportMap"), {
   ssr: false,
@@ -128,6 +129,8 @@ export default function ReportPage() {
       setSubmitting(false);
     }
   }
+
+  
 
   // Submitted view
   if (ticketId) {
@@ -253,14 +256,16 @@ export default function ReportPage() {
 
           <div className="mt-4 rounded-2xl bg-white/70 p-4 ring-1 ring-black/10">
             <p className="text-sm font-semibold text-neutral-700">Captcha</p>
-            {/* Replace this demo button with your real captcha widget */}
-            <button
-              className="grad-btn-soft mt-3 text-sm"
-              onClick={() => setCaptchaToken("demo-token")}
-              type="button"
-            >
-              (Demo) Set captcha token
-            </button>
+
+            {/* CAPTCHA */}
+            <TurnstileWidget
+              onToken={(token) => {
+                setCaptchaToken(token);
+                setError("");
+              }}
+              onExpire={() => setCaptchaToken("")}
+              onError={() => setError("Captcha failed to load. Please refresh and try again.")}
+            />
           </div>
 
           {error ? (
