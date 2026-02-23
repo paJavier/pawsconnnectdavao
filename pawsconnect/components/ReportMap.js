@@ -1,7 +1,7 @@
 "use client";
 
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import L from "leaflet";
 
 // Fix marker icon issue in Next.js
@@ -12,20 +12,63 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+// Prefer a shorter address for UI + reports
+function formatAddress(a) {
+  if (!a) return "";
+  const parts = [
+    a.road || a.pedestrian || a.footway || a.cycleway || a.path,
+    a.neighbourhood || a.suburb || a.village || a.town || a.city_district,
+    a.city || a.town || a.municipality,
+    a.state,
+    a.postcode,
+    a.country,
+  ].filter(Boolean);
+
+  // remove duplicates while keeping order
+  const uniq = [];
+  for (const p of parts) if (!uniq.includes(p)) uniq.push(p);
+
+  return uniq.join(", ");
+}
+
 function LocationMarker({ position, setPosition, setLocation, reverseGeocode }) {
+  const clickSeq = useRef(0);
+
   useMapEvents({
     async click(e) {
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+
       setPosition(e.latlng);
-      const baseLoc = { lat: e.latlng.lat, lng: e.latlng.lng, address: "" };
-      setLocation(baseLoc);
+
+      // optimistic update immediately (no waiting)
+      setLocation({
+        lat,
+        lng,
+        address: "Resolving address…",
+        fullAddress: "",
+      });
+
+      const seq = ++clickSeq.current;
 
       try {
-        const address = await reverseGeocode(e.latlng.lat, e.latlng.lng);
-        if (address) {
-          setLocation({ ...baseLoc, address });
-        }
+        const data = await reverseGeocode(lat, lng);
+        // ignore stale responses (if user clicked multiple times quickly)
+        if (seq !== clickSeq.current) return;
+
+        setLocation({
+          lat,
+          lng,
+          address: data.address || "",
+          fullAddress: data.fullAddress || "",
+        });
       } catch {
-        // Keep lat/lng even if reverse geocoding fails.
+        setLocation({
+          lat,
+          lng,
+          address: "",
+          fullAddress: "",
+        });
       }
     },
   });
@@ -45,6 +88,13 @@ export default function ReportMap({ setLocation }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
+  // Nominatim: include a UA so it’s less likely to reject requests
+  const NOMINATIM_HEADERS = {
+    "Accept-Language": "en",
+    // Some environments ignore User-Agent in browsers, but harmless to include.
+    "User-Agent": "PawsConnectDavao/1.0 (reporting map)",
+  };
+
   async function reverseGeocode(lat, lng) {
     const url =
       "https://nominatim.openstreetmap.org/reverse?" +
@@ -53,15 +103,20 @@ export default function ReportMap({ setLocation }) {
         lon: String(lng),
         format: "jsonv2",
         zoom: "18",
+        addressdetails: "1",
       });
 
-    const res = await fetch(url, {
-      headers: { "Accept-Language": "en" },
-    });
-
+    const res = await fetch(url, { headers: NOMINATIM_HEADERS });
     if (!res.ok) throw new Error("Failed reverse geocode");
+
     const data = await res.json();
-    return (data?.display_name || "").toString();
+    const fullAddress = (data?.display_name || "").toString();
+    const shortAddress = formatAddress(data?.address);
+
+    return {
+      address: shortAddress || fullAddress,
+      fullAddress,
+    };
   }
 
   async function searchAddress() {
@@ -73,28 +128,22 @@ export default function ReportMap({ setLocation }) {
 
     setLoading(true);
     try {
-      // PH-only results; remove countrycodes if you want worldwide
       const url =
         "https://nominatim.openstreetmap.org/search?" +
         new URLSearchParams({
           q,
-          format: "json",
+          format: "jsonv2",
           addressdetails: "1",
           limit: "5",
           countrycodes: "ph",
         });
 
-      const res = await fetch(url, {
-        headers: {
-          "Accept-Language": "en",
-        },
-      });
-
+      const res = await fetch(url, { headers: NOMINATIM_HEADERS });
       if (!res.ok) throw new Error("Failed search");
 
       const data = await res.json();
 
-      const mapped = data.map((d) => ({
+      const mapped = (Array.isArray(data) ? data : []).map((d) => ({
         display_name: d.display_name,
         lat: parseFloat(d.lat),
         lng: parseFloat(d.lon),
@@ -102,37 +151,40 @@ export default function ReportMap({ setLocation }) {
 
       setResults(mapped);
       if (mapped.length === 0) setErr("No results found.");
-    } catch (e) {
+    } catch {
       setErr("Search failed. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
-  function chooseResult(r) {
-    const latlng = { lat: r.lat, lng: r.lng };
+  async function chooseResult(r) {
+    const lat = r.lat;
+    const lng = r.lng;
+
+    const latlng = { lat, lng };
     setPosition(latlng);
 
-    // Pan + zoom the map to searched location
-    if (map) {
-      map.setView([r.lat, r.lng], 16);
+    if (map) map.setView([lat, lng], 16);
+
+    // Use reverse geocode to store a consistent short address
+    setLocation({ lat, lng, address: "Resolving address…", fullAddress: "" });
+
+    try {
+      const data = await reverseGeocode(lat, lng);
+      setLocation({ lat, lng, address: data.address, fullAddress: data.fullAddress });
+    } catch {
+      // fallback to whatever nominatim returned in search
+      setLocation({ lat, lng, address: r.display_name, fullAddress: r.display_name });
     }
 
-    // Include address in the report
-    setLocation({
-      lat: r.lat,
-      lng: r.lng,
-      address: r.display_name,
-    });
-
-    // clear dropdown (optional)
     setResults([]);
   }
 
   return (
     <div className="relative z-0 overflow-hidden rounded-xl border">
       {/* Search UI */}
-      <div className="p-3 bg-white border-b">
+      <div className="border-b bg-white p-3">
         <div className="flex gap-2">
           <input
             className="flex-1 rounded-lg border px-3 py-2 text-sm"
@@ -155,20 +207,16 @@ export default function ReportMap({ setLocation }) {
 
         {err ? <p className="mt-2 text-xs text-red-600">{err}</p> : null}
 
-        {/* Results dropdown */}
         {results.length > 0 && (
           <div className="mt-2 max-h-44 overflow-auto rounded-lg border">
             {results.map((r, idx) => (
               <button
                 key={`${r.lat}-${r.lng}-${idx}`}
                 type="button"
-                className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b last:border-b-0"
+                className="w-full border-b px-3 py-2 text-left hover:bg-gray-50 last:border-b-0"
                 onClick={() => chooseResult(r)}
               >
                 <p className="text-sm">{r.display_name}</p>
-                <p className="text-xs text-gray-600">
-                  {r.lat.toFixed(5)}, {r.lng.toFixed(5)}
-                </p>
               </button>
             ))}
           </div>
