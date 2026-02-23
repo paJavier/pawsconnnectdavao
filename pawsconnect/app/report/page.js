@@ -15,7 +15,9 @@ const ReportMap = dynamic(() => import("@/components/ReportMap"), {
 });
 
 export default function ReportPage() {
-  const [location, setLocation] = useState(null);
+  const [lat, setLat] = useState(null);
+  const [lng, setLng] = useState(null);
+  const [address, setAddress] = useState("");
 
   const [urgency, setUrgency] = useState("LOW");
   const [description, setDescription] = useState("");
@@ -61,16 +63,16 @@ export default function ReportPage() {
   async function handleSubmit() {
     setError("");
 
-    if (!location?.lat || !location?.lng) return setError("Please select a location.");
+    if (!lat || !lng) return setError("Please select a location.");
     if (!description.trim()) return setError("Please add a description.");
     if (!captchaToken) return setError("Please complete the captcha.");
 
     try {
       setSubmitting(true);
       const formData = new FormData();
-      formData.append("lat", String(location.lat));
-      formData.append("lng", String(location.lng));
-      formData.append("address", location.address || "");
+      formData.append("lat", String(lat));
+      formData.append("lng", String(lng));
+      formData.append("address", address || "");
       formData.append("urgency", urgency);
       formData.append("description", description);
       formData.append("captchaToken", captchaToken);
@@ -125,10 +127,9 @@ export default function ReportPage() {
             <span className="font-mono font-semibold text-neutral-900">{ticketId}</span>
           </p>
 
-          {location?.address ? (
+          {address ? (
             <p className="mt-2 text-sm text-neutral-700">
-              Location:{" "}
-              <span className="font-medium text-neutral-900">{location.address}</span>
+              Location: <span className="font-medium text-neutral-900">{address}</span>
             </p>
           ) : null}
 
@@ -172,21 +173,14 @@ export default function ReportPage() {
           <div className="mt-4 overflow-hidden rounded-2xl ring-1 ring-black/10">
             <ReportMap
               setLocation={(loc) => {
-                if (!loc) {
-                  setLocation(null);
-                  return;
-                }
-
                 const nextLat = Number(loc?.lat);
                 const nextLng = Number(loc?.lng);
                 const nextAddr = String(loc?.address || "");
 
                 if (!Number.isNaN(nextLat) && !Number.isNaN(nextLng)) {
-                  setLocation({
-                    lat: Number(nextLat.toFixed(6)),
-                    lng: Number(nextLng.toFixed(6)),
-                    address: nextAddr,
-                  });
+                  setLat(Number(nextLat.toFixed(6)));
+                  setLng(Number(nextLng.toFixed(6)));
+                  setAddress(nextAddr);
                 }
               }}
             />
@@ -194,17 +188,9 @@ export default function ReportPage() {
 
           <div className="mt-4 flex flex-col gap-1">
             <span className="text-sm text-neutral-700">
-              {location?.address
-                ? location.address
-                : location
-                  ? "Resolving address..."
-                  : "No location selected yet"}
+              {lat && lng ? `(${lat}, ${lng})` : "No location selected yet"}
             </span>
-            {location?.lat && location?.lng ? (
-              <span className="text-xs text-neutral-600">
-                ({location.lat}, {location.lng})
-              </span>
-            ) : null}
+            {address ? <span className="text-xs text-neutral-600">{address}</span> : null}
           </div>
         </div>
 
