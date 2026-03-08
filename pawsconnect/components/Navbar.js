@@ -347,7 +347,7 @@ export default function Navbar() {
 
                   <div className="flex items-center justify-end">
                     <Link
-                      href="/volunteer/forgot"
+                      href="/volunteer-orgs/forgot"
                       className="text-xs font-semibold text-secondary underline decoration-secondary/50 underline-offset-4 hover:decoration-secondary"
                     >
                       Forgot password?

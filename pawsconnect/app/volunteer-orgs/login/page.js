@@ -133,6 +133,14 @@ export default function VolunteerOrgsLoginPage() {
               {loading ? "Logging in..." : "Login to dashboard"}
             </button>
           </form>
+          <div className="mt-3">
+            <Link
+              href="/volunteer-orgs/forgot"
+              className="text-sm font-semibold text-secondary underline"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <button
             type="button"
             onClick={() => setSignupOpen(true)}
