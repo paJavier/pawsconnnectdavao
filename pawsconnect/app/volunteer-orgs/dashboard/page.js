@@ -51,6 +51,12 @@ function average(numbers) {
   return numbers.reduce((sum, n) => sum + n, 0) / numbers.length;
 }
 
+function formatDateTime(ts) {
+  const ms = toMillis(ts);
+  if (!ms) return "N/A";
+  return new Date(ms).toLocaleString();
+}
+
 export default function VolunteerDashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -72,6 +78,7 @@ export default function VolunteerDashboardPage() {
   const [savingReportAction, setSavingReportAction] = useState(false);
   const [reportActionMessage, setReportActionMessage] = useState("");
   const [nowTick, setNowTick] = useState(Date.now());
+  const [isFullReportOpen, setIsFullReportOpen] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -183,6 +190,10 @@ export default function VolunteerDashboardPage() {
     if (!selectedReport || (selectedReport.status || "").toString().toUpperCase() !== "ACCEPTED") return;
     const timer = setInterval(() => setNowTick(Date.now()), 1000);
     return () => clearInterval(timer);
+  }, [selectedReport]);
+
+  useEffect(() => {
+    if (!selectedReport) setIsFullReportOpen(false);
   }, [selectedReport]);
 
   const resolvedAvgMs = useMemo(() => {
@@ -559,10 +570,70 @@ export default function VolunteerDashboardPage() {
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
-          <Link href="/volunteer-orgs/dashboard/reports" className="grad-btn-soft px-4 py-2 text-sm text-secondary">Open full reports</Link>
+          <button
+            type="button"
+            onClick={() => setIsFullReportOpen(true)}
+            disabled={!selectedReport}
+            className="grad-btn-soft px-4 py-2 text-sm text-secondary disabled:opacity-60"
+          >
+            Open full report
+          </button>
           <button onClick={() => window.location.reload()} className="grad-btn-soft px-4 py-2 text-sm text-secondary">Refresh</button>
         </div>
       </div>
+
+      {isFullReportOpen && selectedReport ? (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/45 px-4 py-6">
+          <div className="grad-card-ngo relative max-h-[90vh] w-full max-w-2xl overflow-y-auto p-6 md:p-7">
+            <button
+              type="button"
+              onClick={() => setIsFullReportOpen(false)}
+              className="absolute right-4 top-3 text-2xl text-neutral-500 hover:text-neutral-700"
+              aria-label="Close full report"
+            >
+              ×
+            </button>
+
+            <h2 className="text-2xl font-extrabold text-primary">Full Report</h2>
+            <p className="mt-1 text-sm text-neutral-700">
+              Ticket #{selectedReport.ticketId || selectedReport.id}
+            </p>
+
+            <div className="mt-5 space-y-2 rounded-2xl bg-white/80 p-4 text-sm ring-1 ring-black/10">
+              <p><span className="font-semibold">Status:</span> {(selectedReport.status || "PENDING").toString().toUpperCase()}</p>
+              <p><span className="font-semibold">Urgency:</span> {(selectedReport.urgency || "LOW").toString().toUpperCase()}</p>
+              <p><span className="font-semibold">Address:</span> {selectedReport.address || "N/A"}</p>
+              <p><span className="font-semibold">Coordinates:</span> {selectedReport.lat ?? "N/A"}, {selectedReport.lng ?? "N/A"}</p>
+              <p><span className="font-semibold">Description:</span> {selectedReport.description || "No description provided."}</p>
+              <p><span className="font-semibold">Created:</span> {formatDateTime(selectedReport.createdAt)}</p>
+              <p><span className="font-semibold">Accepted:</span> {formatDateTime(selectedReport.acceptedAt)}</p>
+              <p><span className="font-semibold">Resolved:</span> {formatDateTime(selectedReport.resolvedAt)}</p>
+              <p><span className="font-semibold">Assigned Volunteer UID:</span> {selectedReport.assignedVolunteerUid || "N/A"}</p>
+              <p><span className="font-semibold">Assigned Organization:</span> {selectedReport.assignedOrganization || "N/A"}</p>
+            </div>
+
+            {selectedReport.photoUrl ? (
+              <img
+                src={selectedReport.photoUrl}
+                alt={`Report ${selectedReport.ticketId || selectedReport.id}`}
+                className="mt-4 w-full rounded-xl object-cover ring-1 ring-black/10"
+              />
+            ) : (
+              <p className="mt-4 text-sm text-neutral-600">No photo attached.</p>
+            )}
+
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsFullReportOpen(false)}
+                className="grad-btn-soft px-4 py-2 text-sm text-secondary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
