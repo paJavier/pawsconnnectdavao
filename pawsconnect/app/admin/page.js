@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
+import {
+  browserSessionPersistence,
+  inMemoryPersistence,
+  onAuthStateChanged,
+  setPersistence,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
 import { collection, doc, getDoc, getDocs, getDocsFromServer, serverTimestamp, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import { getAuthErrorMessage } from "@/lib/authErrorMessage";
 
 export default function AdminPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -51,27 +59,40 @@ export default function AdminPage() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
-      setLoginLoading(false);
-      if (!user) {
+      try {
+        setLoginLoading(false);
+        if (!user) {
+          setIsAdmin(false);
+          setCheckingAuth(false);
+          return;
+        }
+
+        const userSnap = await getDoc(doc(db, "users", user.uid));
+        const role = userSnap.exists()
+          ? (userSnap.data()?.role || "").toString().trim().toLowerCase()
+          : null;
+
+        if (role !== "admin") {
+          setMessage({ type: "error", text: "This account does not have admin access." });
+          setIsAdmin(false);
+          setCheckingAuth(false);
+          await signOut(auth);
+          return;
+        }
+
+        setIsAdmin(true);
+        setCheckingAuth(false);
+        await loadApps(filter);
+      } catch (error) {
+        setMessage({ type: "error", text: getAuthErrorMessage(error, "Unable to verify admin access. Please try again.") });
         setIsAdmin(false);
         setCheckingAuth(false);
-        return;
+        try {
+          await signOut(auth);
+        } catch {
+          // ignore sign-out cleanup errors
+        }
       }
-
-      const userSnap = await getDoc(doc(db, "users", user.uid));
-      const role = userSnap.exists()
-        ? (userSnap.data()?.role || "").toString().trim().toLowerCase()
-        : null;
-
-      if (role !== "admin") {
-        setIsAdmin(false);
-        setCheckingAuth(false);
-        return;
-      }
-
-      setIsAdmin(true);
-      setCheckingAuth(false);
-      await loadApps(filter);
     });
 
     return () => unsub();
@@ -91,9 +112,14 @@ export default function AdminPage() {
     try {
       setMessage({ type: "", text: "" });
       setLoginLoading(true);
+      try {
+        await setPersistence(auth, browserSessionPersistence);
+      } catch {
+        await setPersistence(auth, inMemoryPersistence);
+      }
       await signInWithEmailAndPassword(auth, loginForm.email.trim(), loginForm.password);
     } catch (error) {
-      setMessage({ type: "error", text: error.message || "Admin login failed." });
+      setMessage({ type: "error", text: getAuthErrorMessage(error, "Admin login failed. Please try again.") });
     } finally {
       setLoginLoading(false);
     }

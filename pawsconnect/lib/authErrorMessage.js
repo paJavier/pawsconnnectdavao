@@ -17,10 +17,12 @@ export function getAuthErrorMessage(error, fallback = "Something went wrong. Ple
       return "Password is too weak. Use at least 6 characters.";
     case "auth/network-request-failed":
       return "Network error. Check your internet connection and try again.";
+    case "auth/web-storage-unsupported":
+    case "auth/operation-not-supported-in-this-environment":
+      return "This browser mode blocks required login storage. Turn off private mode or try a different browser.";
     case "auth/configuration-not-found":
       return "Sign-in is not configured yet. Please contact support.";
     default:
       return fallback;
   }
 }
-
