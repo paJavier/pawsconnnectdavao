@@ -13,6 +13,8 @@ import { collection, doc, getDoc, getDocs, getDocsFromServer, serverTimestamp, u
 import { auth, db } from "@/lib/firebase";
 import { getAuthErrorMessage } from "@/lib/authErrorMessage";
 
+const ADMIN_SESSION_HINT_KEY = "admin_session_seen";
+
 export default function AdminPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -24,6 +26,7 @@ export default function AdminPage() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [loginNotice, setLoginNotice] = useState("Sign in with your admin credentials.");
 
   const loadApps = async (activeFilter = filter) => {
     setLoadingApps(true);
@@ -62,6 +65,15 @@ export default function AdminPage() {
       try {
         setLoginLoading(false);
         if (!user) {
+          const hadAdminSession = typeof window !== "undefined" && window.localStorage.getItem(ADMIN_SESSION_HINT_KEY) === "1";
+          setLoginNotice(
+            hadAdminSession
+              ? "Automatically logged out. Please sign in with your admin credentials."
+              : "Sign in with your admin credentials."
+          );
+          if (hadAdminSession && typeof window !== "undefined") {
+            window.localStorage.removeItem(ADMIN_SESSION_HINT_KEY);
+          }
           setIsAdmin(false);
           setCheckingAuth(false);
           return;
@@ -73,6 +85,9 @@ export default function AdminPage() {
           : null;
 
         if (role !== "admin") {
+          if (typeof window !== "undefined") {
+            window.localStorage.removeItem(ADMIN_SESSION_HINT_KEY);
+          }
           setMessage({ type: "error", text: "This account does not have admin access." });
           setIsAdmin(false);
           setCheckingAuth(false);
@@ -80,10 +95,17 @@ export default function AdminPage() {
           return;
         }
 
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(ADMIN_SESSION_HINT_KEY, "1");
+        }
+        setLoginNotice("Sign in with your admin credentials.");
         setIsAdmin(true);
         setCheckingAuth(false);
         await loadApps(filter);
       } catch (error) {
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem(ADMIN_SESSION_HINT_KEY);
+        }
         setMessage({ type: "error", text: getAuthErrorMessage(error, "Unable to verify admin access. Please try again.") });
         setIsAdmin(false);
         setCheckingAuth(false);
@@ -157,7 +179,7 @@ export default function AdminPage() {
         <div className="grad-card-ngo p-8">
           <h1 className="text-2xl font-extrabold text-primary">Admin Login</h1>
           <p className="mt-2 text-sm text-neutral-700">
-            Sign in with an admin account (`users/{`uid`}.role = "admin"`).
+            {loginNotice}
           </p>
           {message.text ? (
             <div
